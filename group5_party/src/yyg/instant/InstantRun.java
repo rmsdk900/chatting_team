@@ -1,4 +1,4 @@
-package yyg;
+package yyg.instant;
 
 /**
  * @author yyg

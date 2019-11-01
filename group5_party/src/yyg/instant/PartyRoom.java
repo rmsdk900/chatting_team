@@ -1,3 +1,4 @@
+package yyg.instant;
 /*
  * package yyg;
  * 

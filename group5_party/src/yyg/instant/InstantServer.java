@@ -1,4 +1,4 @@
-package yyg;
+package yyg.instant;
 
 import java.io.IOException;
 import java.io.ObjectOutputStream;

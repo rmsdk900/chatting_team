@@ -1,3 +1,5 @@
+package yyg.instant;
+
 /*
  * package yyg;
  * 
@@ -9,6 +11,9 @@
 	 *
 	 */
 /*
+ * 
+ * 
+ * 
  * 
  * public class PartyUser { // 각 유저의 auto-increment private int autoIn;
  * 
@@ -29,6 +34,9 @@
 	 * 
 	 */
 /*
+ * 
+ * 
+ * 
  * public void enterRoom(PartyRoom room) { // 유저를 룸으로 입장시키는 메소드(룸의 메소드 이용)
  * room.enterUser(this); // 유저가 속한 방을 룸으로 변경 this.pRoom = room; }
  * 
