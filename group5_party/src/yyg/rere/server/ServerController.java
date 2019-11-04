@@ -1,4 +1,4 @@
-package yyg.home.server;
+package yyg.rere.server;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -6,8 +6,10 @@ import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URL;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.Vector;
 import java.util.concurrent.ExecutorService;
@@ -35,6 +37,8 @@ public class ServerController implements Initializable{
 	
 	// 클라이언트들을 담아둘 벡터
 	List<Client> connClients = new Vector<>();
+	// 방마다 접속자 수를 담아둘 map
+	Map<String, Vector<Client>> onUserList = new HashMap<>();
 	
 	// 가져올 클라이언트 
 	class Client {
@@ -229,7 +233,9 @@ public class ServerController implements Initializable{
 				btnStartStop.setText("Start");
 				displayText("[ 서버 종료 ]");
 			});
-		} catch (IOException e) {}
+		} catch (IOException e) {
+			System.out.println(e.getMessage());
+		}
 		
 	}
 	// 날라온거 textarea에 적기

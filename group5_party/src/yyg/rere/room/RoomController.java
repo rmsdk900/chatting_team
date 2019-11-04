@@ -14,6 +14,7 @@ public class RoomController implements Initializable {
 	@FXML private TextArea txtArea;
 	@FXML private TextField txtInput;
 	@FXML private Button btnSend;
+
 	
 	@Override
 	public void initialize(URL location, ResourceBundle resources) {

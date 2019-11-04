@@ -1,6 +1,9 @@
-package yyg.home.client;
+package yyg.rere.Client;
 
+import java.io.IOException;
+import java.net.InetAddress;
 import java.net.Socket;
+import java.net.UnknownHostException;
 
 public class PartyUser {
 	// 각 유저의 auto-increment
@@ -28,6 +31,35 @@ public class PartyUser {
 		this.uPassword = uPassword;
 	}
 	
+	public PartyUser (String uId, Socket client) {
+		this.client = client;
+		this.uId = uId;
+		startClient();
+	}
+	
+	public PartyUser(int uNumber, String uId, String uName, String uPassword) {
+		this.uNumber = uNumber;
+		this.uId = uId;
+		this.uName = uName;
+		this.uPassword = uPassword;
+	}
+	
+	public void startClient() {
+		System.out.println("서버에 연결 시도");
+		try {
+			InetAddress ip = InetAddress.getByName("192.168.1.31");
+			// 서버에 연결 요청 보내기
+			client = new Socket(ip, 5001);
+			System.out.println("[ 연결 완료 : "+client.getRemoteSocketAddress()+"]");
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+	}
+	
+	
 	// 방 입장 메소드
 //	public void enterRoom(PartyRoom room) {
 //		// 유저를 룸에 입장시키는 메소드(룸의 메소드)
@@ -41,8 +73,8 @@ public class PartyUser {
 //		this.pRoom = null;
 //		// 퇴장 메시지나 처리 항목 더 추가
 //	}
+	 
 	
-	// 유저 간 비교를 위한 기존 메소드들 재정의 
 	
 	// Getter
 	public int getuNumber() {

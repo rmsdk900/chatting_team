@@ -12,6 +12,8 @@ public class AppMain extends Application {
 	// 자원 설정
 	public static StackPane stackPane;
 	
+	//
+	
 	@Override
 	public void start(Stage primaryStage) {
 		try {
@@ -22,8 +24,9 @@ public class AppMain extends Application {
 		}
 		// static이니까 
 		Scene scene = new Scene(AppMain.stackPane);
+		
 		primaryStage.setScene(scene);
-		primaryStage.setResizable(true);
+		primaryStage.setResizable(false);
 		primaryStage.show();
 	}
 

@@ -1,258 +1,282 @@
-package yyg.rere.login;
+package yyg.rere.server;
 
 import java.io.IOException;
-import java.net.InetAddress;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.URL;
-import java.net.UnknownHostException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ResourceBundle;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.StringTokenizer;
 
-import javafx.application.Platform;
-import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
-import javafx.fxml.Initializable;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Alert.AlertType;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.PasswordField;
-import javafx.scene.control.TextField;
-import javafx.scene.input.KeyCode;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
-import yyg.rere.Client.PartyUser;
-import yyg.rere.waiting.WaitController;
-// 로그인 관련 처리하는 녀석이자 socket 관련 처리하는 녀석
-public class LoginController implements Initializable{
-	
-	// fxml 변수
-	@FXML private TextField txtId;
-	@FXML private PasswordField txtPw;
-	@FXML private Button btnLogin, btnSignup, btnExit;
-	
-	// 커스텀 다이얼로그 
-	private Stage dialog;
-	//통신 관련 변수들
-	private Socket server;
-	private Socket socket;
-	
-	// 유저 정보 담고 있기
-	private PartyUser partyUser;
-	
-	// 
-	@Override
-	public void initialize(URL arg0, ResourceBundle arg1) {
-		// 서버와 연결 먼저
-		startClient();
-		// id에게 먼저 포커스 주기
-		txtId.requestFocus();
-		
-		// 키보드로도 버튼 클릭과 같은 효과 주기
-		txtId.setOnKeyPressed(key->{
-			if(key.getCode().equals(KeyCode.ENTER)) {
-				txtPw.requestFocus();
-			}
-		});
-		
-		txtPw.setOnKeyPressed(key->{
-			if(key.getCode().equals(KeyCode.ENTER)) {
-				btnLogin.fire();
-			}
-		});
-		
-		
-		
-		// 로그인 버튼 눌렀을 때
-		btnLogin.setOnAction((event)->{
-			System.out.println("로그인");
-			// 등록할 로그인 정보 콘솔에 출력
-			String loginId = txtId.getText();
-			String loginPw = txtPw.getText();
-			// 로그인 확인
-			
-			boolean isOk =login(loginId, loginPw);
-			// 로그인 성공 시 대기실 창 열기
-			if(isOk) {
-				try {
-					
-					Parent signUp = FXMLLoader.load(WaitController.class.getResource("waitingroom.fxml"));
-					Stage stage = new Stage();
-					stage.setTitle("대기실");
-					Scene scene = new Scene(signUp);
-					stage.setScene(scene);
-					stage.setResizable(false);
-					stage.show();
-					// 있던 창 숨기기 (네가 원한다면)
-					txtId.getScene().getWindow().hide();
-					
-					
+/*
+create database project;
+use project;
 
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			// 로그인 실패
-			}else {
-				Alert alert = new Alert(AlertType.WARNING);
-				alert.setTitle("로그인 실패!");
-				alert.setHeaderText("로그인에 실패하였습니다.");
-				alert.setContentText("아이디나 패스워드를 다시 확인해주세요!");
-				alert.showAndWait();
-			}
-			
-			
-		});
-		// 회원가입 버튼 눌렀을 때;
-		btnSignup.setOnAction((event)->{
-			System.out.println("회원가입");
-			// 회원가입창 열기
-			dialog = new Stage();
-			dialog.initModality(Modality.WINDOW_MODAL);
-			dialog.initOwner(txtId.getScene().getWindow());
-			dialog.setTitle("회원가입");
-			
-			try {
-				Parent login = FXMLLoader.load(getClass().getResource("signup.fxml"));
-				
-				//회원가입창 변수들 다 들고오기
-				TextField txtNewId = (TextField) login.lookup("#txtNewId");
-				Button confirmId = (Button) login.lookup("#confirmId");
-				PasswordField txtNewPw = (PasswordField) login.lookup("#txtPw");
-				PasswordField txtPwChk = (PasswordField) login.lookup("#txtPwCheck");
-				Label pwChkMsg = (Label) login.lookup("#pwChkMsg");
-				TextField txtName = (TextField) login.lookup("#txtName");
-				TextField txtNick = (TextField) login.lookup("#txtNick");
-				Button btnReg = (Button) login.lookup("#btnReg");
-				Button btnCancel = (Button) login.lookup("#btnCancel");
-				
-				btnReg.setDisable(true);
-				
-				confirmId.setOnAction(e->{
-					System.out.println("중복확인");
-					String newId = txtNewId.getText();
-					if (existInTable(newId, "member_list")) {
-						Alert alert = new Alert(AlertType.WARNING);
-						alert.setTitle("Warning");
-						alert.setHeaderText("Same ID exist");
-						alert.setContentText("Try another ID");
-						alert.showAndWait();
-						
-						btnReg.setDisable(true);
-						return;
-					}
-					else {
-						Alert alert = new Alert(AlertType.WARNING);
-						alert.setTitle("Success");
-						alert.setHeaderText("You can use this ID");
-						alert.setContentText("Move on to next step");
-						alert.showAndWait();
-						
-						btnReg.setDisable(false);
-					}
-				});
-				
-				Thread autoCheckPw = new Thread(()->{
-					while(true) {
-						try {
-							Thread.sleep(100);
-						} catch (InterruptedException e1) {
-							e1.printStackTrace();
-						}
-						String nPw =txtNewPw.getText();
-						String nPwChk = txtPwChk.getText();
-						if(nPw.equals(nPwChk)) {
-							Platform.runLater(()->{
-								pwChkMsg.setStyle("-fx-text-fill: blue;");
-								pwChkMsg.setText("패스워드가 일치함");
-							});
-													
-						}else {
-							Platform.runLater(()->{
-								pwChkMsg.setStyle("-fx-text-fill: red;");
-								pwChkMsg.setText("패스워드가 일치하지 않음");
-							});
-							
-						}
-					}
-				});
-				autoCheckPw.setDaemon(true);
-				autoCheckPw.start();	
-				
-				// 제일 쉬운 닫기부터
-				btnCancel.setOnAction(e->{
-					dialog.close();
-				});
-				
-				
-				// 등록 버튼 눌렀을 시
-				btnReg.setOnAction(e->{
-					// 텍스트 얻어오기
-					String newId = txtNewId.getText();
-					String newPw = txtNewPw.getText();
-					String newPwC = txtPwChk.getText();
-					String newName = txtName.getText();
-					String newNick = txtNick.getText();
-					
-					if (!newPw.equals(newPwC)) {
-						Alert alert = new Alert(AlertType.WARNING);
-						alert.setTitle("Warning");
-						alert.setHeaderText("Password and PasswordCheck are different");
-						alert.setContentText("Please check your Password");
-						alert.showAndWait();
-						
-						return;
-					}
-					
-					join(newId, newPw, newNick);
-					// 얘도 서버를 통해서 DB에 저장해주기.
-					partyUser = new PartyUser(getterNum(newId), newId, newNick, newPw);
-					System.out.println(partyUser);
+create table member_list(
+	num int auto_increment,
+    id char(20) not null,
+    pw char(20) not null,
+    nName char(20),
+    primary key (num)
+);
 
-					dialog.close();
-				});
+create table room_list(
+	num int,
+    rName char(50) not null,
+    
+    primary key (num)
+);
 
-				Scene scene = new Scene(login);
-				dialog.setScene(scene);
-				dialog.setResizable(false);
-				dialog.show();
-				
-				
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			
-			
-		});
-		
-		btnExit.setOnAction((event)->{
-			System.out.println("종료");
-			Platform.exit();
-		});
-	}
-	// 서버랑 연결 작업하기
-	public void startClient() {
-		
-		System.out.println("서버에 연결 시도");
+alter table member_list add index (id);
+alter table member_list add index (num);
+ */
+
+public class ChatServer {
+
+	private static int u_count = 0;
+	private static int r_count = 0;
+	private static boolean running = true;
+	static ServerSocket serverSocket;
+	static HashMap<Integer, Socket> online = new HashMap<>();				// online user
+	static HashMap<Integer, ArrayList<Integer>> rooms = new HashMap<>();	// room control
+	
+	public static void main(String [] args) {
 		try {
-			InetAddress ip = InetAddress.getByName("192.168.1.31");
-			// 서버에 연결 요청 보내기
-			socket = new Socket(ip, 5001);
-			System.out.println("[ 연결 완료 : "+socket.getRemoteSocketAddress()+"]");
-		} catch (UnknownHostException e) {
-			e.printStackTrace();
+			serverSocket = new ServerSocket();
+/*////////*/serverSocket.bind(new InetSocketAddress("192.168.1.31", 5001));
+			System.out.println("[Server open]");
+			
+			Thread t = new Thread(() -> {
+				while (running) {addClient();}
+			});
+			t.start();
 		} catch (IOException e) {
-			e.printStackTrace();
+			System.out.println("[Server open fail] : " + e.getMessage());
+			stopServer();
+			return;
 		}
 	}
 	
+	private static void stopServer() {
+		System.out.println("Server Boom!");
+		try {
+			for (int a : online.keySet()) {
+				// what order?
+				online.get(a).close();		
+				online.remove(a);
+			}
+			if(serverSocket != null && !serverSocket.isClosed()) {
+				serverSocket.close();
+			}
+		} catch (IOException e) {}
+	}
 	
-
+	private static synchronized void addClient() {
+		System.out.println("(Come on client...)");
+		try {
+			Socket socket = null;
+			socket = serverSocket.accept();
+			if (socket != null) {
+				int s_num = u_count;
+				online.put(u_count++, socket);
+				System.out.println("new client" + s_num + " accepted");
+				receive(s_num, socket);
+			}
+			else {
+				return;
+			}
+		} catch (IOException e) {
+			System.out.println("'addClient' STOP : " + e.getMessage());
+		}
+	}
+	
+	private static synchronized void delClient(int num) {
+		System.out.println("client" + num + " is in 'delClient'");
+		
+		// what order?
+		whole:
+		for (int a : rooms.keySet()) {
+			for (int b = 0; b < rooms.get(a).size(); b++) {
+				if (rooms.get(a).get(b) == num) {rooms.get(a).remove(b);}
+				if (rooms.get(a).size() == 0)	{rooms.remove(a);}
+				break whole;
+			}
+		}
+	
+		try {
+			online.get(num).close();
+		} catch (IOException e) {
+			System.out.println("fail 'delClient' in removing socket");
+			e.printStackTrace();
+		}
+		
+		online.remove(num);
+	}
+	
+	private static void receive(int s_num, Socket socket) {
+		System.out.println("client" + s_num + " in 'receive' function");
+		Thread t = new Thread(() -> {	// what is this lambda expression about?
+			while(true) {
+				try {
+					byte[] bytes = new byte[100];
+					InputStream is = socket.getInputStream();					
+					
+					int readByte = is.read(bytes);
+					
+					String sender = ((InetSocketAddress)socket.getRemoteSocketAddress()).getHostName();
+					String data = new String(bytes, 0, readByte, "UTF-8");
+					
+					// tokenize data
+					StringTokenizer st = new StringTokenizer(data, "|");
+					int request = Integer.parseInt(st.nextToken());
+					int option = Integer.parseInt(st.nextToken());
+					
+					String message = "";
+					int count = 0;
+					while(st.hasMoreTokens()) {
+						if (count != 0) message += "|";
+						message = st.nextToken();
+					}
+					
+					
+					switch(request) {	// request|option|message
+						case 1: // make a room and enter
+							int temp = r_count++;
+							rooms.put(temp, new ArrayList<Integer>());
+							setRoom(temp, message);
+							rooms.get(temp).add(s_num);
+							break;
+						case 2: // enter the room			[option]
+							rooms.get(option).add(s_num);
+							break;
+						case 3: // room out					[option]
+							rooms.get(option).remove(s_num);
+							if (rooms.get(option).size() == 0)	{
+								rooms.remove(option);
+								delRoom(option);
+							}
+							break;
+						case 4: // message to the room		[option]
+							send(option, message);
+							break;
+						case 5: // logout
+							delClient(s_num);
+							break;
+						default:
+							break;
+					}
+				} catch (Exception e) {
+					delClient(s_num);
+					System.out.println("[Connection Fail or Over] : " + socket.getRemoteSocketAddress());
+					break;
+				}
+			}				
+		});
+		t.start();
+	}
+	
+	private static void send(int r_num, String message) {
+		System.out.println("from room" + r_num + ", got some message");
+		try {
+			OutputStream os = null;
+			Socket socket = null;
+			for (int a = 0; a < rooms.get(r_num).size(); a++) {
+				socket = online.get(rooms.get(r_num).get(a));
+				os = socket.getOutputStream();
+				byte[] bytes = message.getBytes("UTF-8");
+				os.write(bytes);
+				os.flush();		
+			}
+		} catch (Exception e) {
+			System.out.println("Error in 'send'");
+		}
+	}
+	
+	public static void setRoom(int num, String rName) {
+		String driver = "com.mysql.jdbc.Driver";
+		String url = "jdbc:mysql://localhost:3306/myjava?useSSL=false";
+		String username = "myjava";
+		String password = "12345";
+		
+		Connection conn = null;	// 데이터 베이스 연결 정보
+		Statement stmt = null;	// 연결정보를 가지고 질의 전송을 도와주는 객체
+		ResultSet rs = null;	// 질의에 대한 결과값이 있으면 결과값을 담는 객체
+		
+		String sql;
+		int result;
+		
+		try {
+			Class.forName(driver);
+			conn = DriverManager.getConnection(url,username,password);
+			System.out.println("Database 연결 완료 : " + conn.toString());
+			
+			sql = "";
+			stmt = conn.createStatement();
+			
+			sql = "use project;";
+			result = stmt.executeUpdate(sql);	// 실행 완료된 행의 갯수
+			
+			sql = "INSERT INTO room_list (num, rName) values (" + num + ", '" + rName + "');";
+			rs = stmt.executeQuery(sql);			// 결과값
+			if (rs.next())	return;
+			
+		} catch (ClassNotFoundException e1) {
+			System.out.println("class error");
+			e1.printStackTrace();
+		} catch (SQLException e1) {
+			System.out.println("sql error");
+			e1.printStackTrace();
+		}
+		
+		return;
+	}
+	
+	public static void delRoom(int num) {
+		String driver = "com.mysql.jdbc.Driver";
+		String url = "jdbc:mysql://localhost:3306/myjava?useSSL=false";
+		String username = "myjava";
+		String password = "12345";
+		
+		Connection conn = null;	// 데이터 베이스 연결 정보
+		Statement stmt = null;	// 연결정보를 가지고 질의 전송을 도와주는 객체
+		ResultSet rs = null;	// 질의에 대한 결과값이 있으면 결과값을 담는 객체
+		
+		String sql;
+		int result;
+		
+		try {
+			Class.forName(driver);
+			conn = DriverManager.getConnection(url,username,password);
+			System.out.println("Database 연결 완료 : " + conn.toString());
+			
+			sql = "";
+			stmt = conn.createStatement();
+			
+			sql = "use project;";
+			result = stmt.executeUpdate(sql);	// 실행 완료된 행의 갯수
+			
+			sql = "delete from room_list where num =" + num;
+			rs = stmt.executeQuery(sql);			// 결과값
+			if (rs.next())	return;
+			
+		} catch (ClassNotFoundException e1) {
+			System.out.println("class error");
+			e1.printStackTrace();
+		} catch (SQLException e1) {
+			System.out.println("sql error");
+			e1.printStackTrace();
+		}
+		
+		return;
+	}
+	
 	public static int getterNum(String id) {
 		String driver = "com.mysql.jdbc.Driver";
 		String url = "jdbc:mysql://localhost:3306/myjava?useSSL=false";
@@ -529,5 +553,4 @@ public class LoginController implements Initializable{
 		
 		return false;
 	}
-	
 }

@@ -1,4 +1,4 @@
-package yyg.home.server;
+package yyg.rere.server;
 
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;

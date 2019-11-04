@@ -1,6 +1,9 @@
 package yyg.rere.waiting;
 
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.Socket;
 import java.net.URL;
 import java.util.ResourceBundle;
 
@@ -16,6 +19,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.FlowPane;
 import javafx.stage.Stage;
+import yyg.rere.Client.PartyUser;
 import yyg.rere.waiting.roommodel.RoomModel;
 
 public class WaitController implements Initializable{
@@ -25,9 +29,15 @@ public class WaitController implements Initializable{
 	@FXML private Button btnCreateRoom;
 	@FXML private FlowPane roomFlowPane;
 	
+	// 얘네가 문제
+//	PartyUser partyUser;
+//	Socket socket = partyUser.getClient();
+	
 	
 	@Override
 	public void initialize(URL location, ResourceBundle resources) {
+		
+		
 		roomName.requestFocus();
 		
 		roomName.setOnKeyPressed(key->{
@@ -64,6 +74,11 @@ public class WaitController implements Initializable{
 			lblRoomOwner.setText(roomOwner);
 			roomFlowPane.getChildren().add(newRoom);
 			
+			// 서버에 room 정보 던지기
+			
+			
+//			send(1, -1, roomTitle);
+			
 			
 			
 			room = FXMLLoader.load(getClass().getResource("../room/partyroom.fxml"));
@@ -84,5 +99,22 @@ public class WaitController implements Initializable{
 		
 		
 	}
+	
+//	public void send(int req, int opt, String data) {
+//		data = req+"|"+opt+"|"+data;
+//		
+//		try {
+//			byte[] bytes = data.getBytes("UTF-8");
+//			OutputStream os = socket.getOutputStream();
+//			os.write(bytes);
+//			os.flush();
+//		} catch (UnsupportedEncodingException e) {
+//			e.printStackTrace();
+//			
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
+//		roomName.clear();
+//	}
 	
 }
