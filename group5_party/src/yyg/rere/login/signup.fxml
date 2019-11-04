@@ -6,8 +6,7 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.layout.BorderPane?>
 
-
-<BorderPane xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/8">
+<BorderPane xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1">
    
    <center>
       <VBox alignment="CENTER" BorderPane.alignment="CENTER">
@@ -34,14 +33,14 @@
                   <Label text="닉네임" GridPane.rowIndex="5" />
                   <HBox alignment="CENTER_LEFT" spacing="10.0" GridPane.columnIndex="1">
                      <children>
-                        <TextField maxWidth="140.0" />
-                        <Button mnemonicParsing="false" text="중복 확인" />
+                        <TextField id="txtNewId" maxWidth="140.0" />
+                        <Button id="confirmId" mnemonicParsing="false" text="중복 확인" />
                      </children>
                   </HBox>
-                  <PasswordField maxWidth="160.0" GridPane.columnIndex="1" GridPane.rowIndex="1" />
-                  <PasswordField maxWidth="160.0" GridPane.columnIndex="1" GridPane.rowIndex="2" />
-                  <TextField maxWidth="140.0" GridPane.columnIndex="1" GridPane.rowIndex="4" />
-                  <TextField maxWidth="140.0" promptText="없으면 이름" GridPane.columnIndex="1" GridPane.rowIndex="5" />
+                  <PasswordField id="txtPw" maxWidth="160.0" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                  <PasswordField id="txtPwCheck" maxWidth="160.0" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+                  <TextField id="txtName" maxWidth="140.0" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+                  <TextField id="txtNick" maxWidth="140.0" promptText="없으면 이름" GridPane.columnIndex="1" GridPane.rowIndex="5" />
                </children>
                <padding>
                   <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
@@ -56,8 +55,8 @@
             <Separator prefWidth="200.0" />
             <HBox alignment="CENTER" spacing="10.0">
                <children>
-                  <Button mnemonicParsing="false" text="회원가입" />
-                  <Button mnemonicParsing="false" text="취소" />
+                  <Button id="btnReg" mnemonicParsing="false" text="회원가입" />
+                  <Button id="btnCancel" mnemonicParsing="false" text="취소" />
                </children>
                <padding>
                   <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
