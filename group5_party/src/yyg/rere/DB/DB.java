@@ -41,8 +41,8 @@ show index from member_list;
 //static String url = "jdbc:mysql://localhost:3306/myjava?useSSL=false&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC";
 
 public class DB {
-	static String driver = "com.mysql.cj.jdbc.Driver";
-	static String url = "jdbc:mysql://localhost:3306/myjava?useSSL=false&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC";
+	static String driver = "com.mysql.jdbc.Driver";
+	static String url = "jdbc:mysql://localhost:3306/myjava?useSSL=false";
 	static String username = "myjava";
 	static String password = "12345";
 	

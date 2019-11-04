@@ -42,7 +42,7 @@ public class ChatServer {
 	public static void main(String [] args) {
 		try {
 			serverSocket = new ServerSocket();
-/*////////*/serverSocket.bind(new InetSocketAddress("127.0.0.1", 5001));
+/*////////*/serverSocket.bind(new InetSocketAddress("192.168.1.31", 5001));
 			System.out.println("[Server open]");
 			
 			Thread t = new Thread(() -> {
