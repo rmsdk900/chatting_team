@@ -28,7 +28,7 @@
                   <Label text="아이디" />
                   <Label text="패스워드" GridPane.rowIndex="1" />
                   <Label text="패스워드 확인" GridPane.rowIndex="2" />
-                  <Label text="- 패스워드 중복 메시지" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+                  <Label id="pwChkMsg" text="- 패스워드 중복 메시지" GridPane.columnIndex="1" GridPane.rowIndex="3" />
                   <Label text="이름" GridPane.rowIndex="4" />
                   <Label text="닉네임" GridPane.rowIndex="5" />
                   <HBox alignment="CENTER_LEFT" spacing="10.0" GridPane.columnIndex="1">

@@ -1,8 +1,5 @@
-package yyg.rere.login;
-
+package jhm;
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.Socket;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -20,13 +17,10 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
-import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
-import javafx.scene.input.KeyCode;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-import yyg.rere.waiting.WaitController;
 
 public class LoginController implements Initializable{
 	
@@ -35,209 +29,6 @@ public class LoginController implements Initializable{
 	@FXML private Button btnLogin, btnSignup, btnExit;
 	
 	private Stage dialog;
-	
-	private String serverIp = "192.168.1.41";
-	private int port = 5001;
-	private Socket socket;
-	
-	@Override
-	public void initialize(URL arg0, ResourceBundle arg1) {
-		// id에게 먼저 포커스 주기
-		txtId.requestFocus();
-		
-		// 키보드로도 버튼 클릭과 같은 효과 주기
-		txtId.setOnKeyPressed(key->{
-			if(key.getCode().equals(KeyCode.ENTER)) {
-				txtPw.requestFocus();
-			}
-		});
-		
-		txtPw.setOnKeyPressed(key->{
-			if(key.getCode().equals(KeyCode.ENTER)) {
-				btnLogin.fire();
-			}
-		});
-		
-		
-		
-		// 로그인 버튼 눌렀을 때
-		btnLogin.setOnAction((event)->{
-			System.out.println("로그인");
-			// 등록할 로그인 정보 콘솔에 출력
-			String loginId = txtId.getText();
-			String loginPw = txtPw.getText();
-			// 로그인 확인
-			
-			boolean isOk =login(loginId, loginPw);
-			// 로그인 성공 시 대기실 창 열기
-			if(isOk) {
-				try {
-					Parent signUp = FXMLLoader.load(WaitController.class.getResource("waitingroom.fxml"));
-					Stage stage = new Stage();
-					stage.setTitle("대기실");
-					Scene scene = new Scene(signUp);
-					stage.setScene(scene);
-					stage.setResizable(false);
-					stage.show();
-					// 있던 창 숨기기 (네가 원한다면)
-					txtId.getScene().getWindow().hide();
-					
-					//192.168.1.41, 5001
-					// ip 주소를 가지고 ip 정보 가져오기
-//					InetAddress ip = InetAddress.getByName(serverIp);
-//					서버로 소켓 신청 보내기
-//					socket = new Socket(ip, port);
-//					System.out.println("서버에 요청 보냄");
-					
-					// 
-
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			// 로그인 실패
-			}else {
-				Alert alert = new Alert(AlertType.WARNING);
-				alert.setTitle("로그인 실패!");
-				alert.setHeaderText("로그인에 실패하였습니다.");
-				alert.setContentText("아이디나 패스워드를 다시 확인해주세요!");
-				alert.showAndWait();
-			}
-			
-			
-		});
-		// 회원가입 버튼 눌렀을 때;
-		btnSignup.setOnAction((event)->{
-			System.out.println("회원가입");
-			// 회원가입창 열기
-			dialog = new Stage();
-			dialog.initModality(Modality.WINDOW_MODAL);
-			dialog.initOwner(txtId.getScene().getWindow());
-			dialog.setTitle("회원가입");
-			
-			try {
-				Parent login = FXMLLoader.load(getClass().getResource("signup.fxml"));
-				
-				//회원가입창 변수들 다 들고오기
-				TextField txtNewId = (TextField) login.lookup("#txtNewId");
-				Button confirmId = (Button) login.lookup("#confirmId");
-				PasswordField txtNewPw = (PasswordField) login.lookup("#txtPw");
-				PasswordField txtPwChk = (PasswordField) login.lookup("#txtPwCheck");
-				Label pwChkMsg = (Label) login.lookup("#pwChkMsg");
-				TextField txtName = (TextField) login.lookup("#txtName");
-				TextField txtNick = (TextField) login.lookup("#txtNick");
-				Button btnReg = (Button) login.lookup("#btnReg");
-				Button btnCancel = (Button) login.lookup("#btnCancel");
-				
-				btnReg.setDisable(true);
-				
-				confirmId.setOnAction(e->{
-					System.out.println("중복확인");
-					String newId = txtNewId.getText();
-					if (existInTable(newId, "member_list")) {
-						Alert alert = new Alert(AlertType.WARNING);
-						alert.setTitle("Warning");
-						alert.setHeaderText("Same ID exist");
-						alert.setContentText("Try another ID");
-						alert.showAndWait();
-						
-						btnReg.setDisable(true);
-						return;
-					}
-					else {
-						Alert alert = new Alert(AlertType.WARNING);
-						alert.setTitle("Success");
-						alert.setHeaderText("You can use this ID");
-						alert.setContentText("Move on to next step");
-						alert.showAndWait();
-						
-						btnReg.setDisable(false);
-					}
-				});
-				
-				Thread autoCheckPw = new Thread(()->{
-					while(true) {
-						try {
-							Thread.sleep(100);
-						} catch (InterruptedException e1) {
-							e1.printStackTrace();
-						}
-						String nPw =txtNewPw.getText();
-						String nPwChk = txtPwChk.getText();
-						if(nPw.equals(nPwChk)) {
-//							System.out.println("실행됨");
-							Platform.runLater(()->{
-								pwChkMsg.setStyle("-fx-text-fill: blue;");
-								pwChkMsg.setText("패스워드가 일치함");
-							});
-													
-						}else {
-//							System.out.println("실행됨");
-							Platform.runLater(()->{
-								pwChkMsg.setStyle("-fx-text-fill: red;");
-								pwChkMsg.setText("패스워드가 일치하지 않음");
-							});
-							
-						}
-					}
-				});
-				autoCheckPw.setDaemon(true);
-				autoCheckPw.start();	
-				
-				// 제일 쉬운 닫기부터
-				btnCancel.setOnAction(e->{
-					dialog.close();
-				});
-				
-				
-				// 등록 버튼 눌렀을 시
-				btnReg.setOnAction(e->{
-					// 텍스트 얻어오기
-					String newId = txtNewId.getText();
-					String newPw = txtNewPw.getText();
-					String newPwC = txtPwChk.getText();
-					String newName = txtName.getText();
-					String newNick = txtNick.getText();
-					
-//					System.out.println(newId);
-//					System.out.println(newPw);
-//					System.out.println(newName);
-//					System.out.println(newNick);
-					
-					if (!newPw.equals(newPwC)) {
-						Alert alert = new Alert(AlertType.WARNING);
-						alert.setTitle("Warning");
-						alert.setHeaderText("Password and PasswordCheck are different");
-						alert.setContentText("Please check your Password");
-						alert.showAndWait();
-						
-						return;
-					}
-					
-					join(newId, newPw, newNick);
-					
-//					txtId.setText(newId);
-//					txtPw.setText(newPw);
-					dialog.close();
-				});
-
-				Scene scene = new Scene(login);
-				dialog.setScene(scene);
-				dialog.setResizable(false);
-				dialog.show();
-				
-				
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			
-			
-		});
-		
-		btnExit.setOnAction((event)->{
-			System.out.println("종료");
-			Platform.exit();
-		});
-	}
 	
 	public static int getterNum(String id) {
 		String driver = "com.mysql.jdbc.Driver";
@@ -514,6 +305,117 @@ public class LoginController implements Initializable{
 		}
 		
 		return false;
+	}
+	
+	@Override
+	public void initialize(URL arg0, ResourceBundle arg1) {
+		// 로그인 버튼 눌렀을 때
+		btnLogin.setOnAction((event)->{
+			System.out.println("로그인");
+			// 등록할 로그인 정보 콘솔에 출력
+			String loginId = txtId.getText();
+			String loginPw = txtPw.getText();
+			System.out.println(loginId);
+			System.out.println(loginPw);
+			
+// login(loginId, loginPw);
+
+			
+			// 대기실 창 열기
+			dialog = new Stage();
+			dialog.initModality(Modality.WINDOW_MODAL);
+			dialog.initOwner(txtId.getScene().getWindow());
+			dialog.setTitle("대기실");
+		});
+		// 회원가입 버튼 눌렀을 때;
+		btnSignup.setOnAction((event)->{
+			System.out.println("회원가입");
+			dialog = new Stage();
+			dialog.initModality(Modality.WINDOW_MODAL);
+			dialog.initOwner(txtId.getScene().getWindow());
+			dialog.setTitle("회원가입");
+			
+			try {
+				Parent login = FXMLLoader.load(getClass().getResource("signup.fxml"));
+				
+				TextField txtNewId = (TextField) login.lookup("#txtNewId");
+				Button confirmId = (Button) login.lookup("#confirmId");
+				PasswordField txtNewPw = (PasswordField) login.lookup("#txtPw");
+				PasswordField txtPwChk = (PasswordField) login.lookup("#txtPwCheck");
+				TextField txtName = (TextField) login.lookup("#txtName");
+				TextField txtNick = (TextField) login.lookup("#txtNick");
+				Button btnReg = (Button) login.lookup("#btnReg");
+				Button btnCancel = (Button) login.lookup("#btnCancel");
+				
+				btnReg.setDisable(true);
+				
+				btnCancel.setOnAction(e->{
+					dialog.close();
+				});
+
+				confirmId.setOnAction(e->{
+					System.out.println("중복확인");
+					String newId = txtNewId.getText();
+					if (existInTable(newId, "member_list")) {
+						Alert alert = new Alert(AlertType.WARNING);
+						alert.setTitle("Warning");
+						alert.setHeaderText("Same ID exist");
+						alert.setContentText("Try another ID");
+						alert.showAndWait();
+						
+						btnReg.setDisable(true);
+						return;
+					}
+					else {
+						Alert alert = new Alert(AlertType.WARNING);
+						alert.setTitle("Success");
+						alert.setHeaderText("You can use this ID");
+						alert.setContentText("Move on to next step");
+						alert.showAndWait();
+						
+						btnReg.setDisable(false);
+					}
+				});
+				
+				// 등록 버튼 눌렀을 시
+				btnReg.setOnAction(e->{
+					String newId = txtNewId.getText();
+					String newPw = txtNewPw.getText();
+					String newPwC = txtPwChk.getText();
+					// String newName = txtName.getText();
+					String newNick = txtNick.getText();
+
+					if (!newPw.equals(newPwC)) {
+						Alert alert = new Alert(AlertType.WARNING);
+						alert.setTitle("Warning");
+						alert.setHeaderText("Password and PasswordCheck are different");
+						alert.setContentText("Please check your Password");
+						alert.showAndWait();
+						
+						return;
+					}
+					
+					join(newId, newPw, newNick);
+					
+					dialog.close();
+				});
+				
+				Scene scene = new Scene(login);
+				dialog.setScene(scene);
+				dialog.setResizable(false);
+				dialog.show();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			
+		});
+		
+		btnExit.setOnAction((event)->{
+			System.out.println("종료");
+			Platform.exit();
+		});
 	}
 	
 }
