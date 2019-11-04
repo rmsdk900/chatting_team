@@ -34,11 +34,16 @@ public class ServerController implements Initializable{
 	ExecutorService serverPool;
 	// 서버 소켓
 	ServerSocket server;
+	// 서버 접속자 카운트
+	static int connUserCount = 0;
 	
-	// 클라이언트들을 담아둘 벡터
+	// 접속자들 담아둘 vector
 	List<Client> connClients = new Vector<>();
 	// 방마다 접속자 수를 담아둘 map
 	Map<String, Vector<Client>> onUserList = new HashMap<>();
+	// 방 리스트 담아둘 vector
+	List<String> roomList = new Vector<>();
+	
 	
 	// 가져올 클라이언트 
 	class Client {

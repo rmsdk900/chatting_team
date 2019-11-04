@@ -1,16 +1,15 @@
 package yyg.rere.login;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.URL;
 import java.net.UnknownHostException;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ResourceBundle;
+import java.util.StringTokenizer;
 
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -28,9 +27,15 @@ import javafx.scene.input.KeyCode;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import yyg.rere.Client.PartyUser;
+import yyg.rere.DB.DB;
 import yyg.rere.waiting.WaitController;
 // 로그인 관련 처리하는 녀석이자 socket 관련 처리하는 녀석
 public class LoginController implements Initializable{
+	
+	// 생성자 ? 
+	public LoginController() {
+		
+	}
 	
 	// fxml 변수
 	@FXML private TextField txtId;
@@ -40,12 +45,13 @@ public class LoginController implements Initializable{
 	// 커스텀 다이얼로그 
 	private Stage dialog;
 	//통신 관련 변수들
-	private Socket server;
 	private Socket socket;
 	
 	// 유저 정보 담고 있기
 	private PartyUser partyUser;
 	
+	// 로그인 여부 확인
+	boolean isOk;
 	// 
 	@Override
 	public void initialize(URL arg0, ResourceBundle arg1) {
@@ -76,21 +82,30 @@ public class LoginController implements Initializable{
 			String loginId = txtId.getText();
 			String loginPw = txtPw.getText();
 			// 로그인 확인
-			
-			boolean isOk =login(loginId, loginPw);
+			String data = loginId+","+loginPw;
+			//로그인 허가 신호 보내기
+			send(1, -1, data);
+			//받아올 시간이 필요한가 봐
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e1) {
+				e1.printStackTrace();
+			}
+			// 이것도 서버에서 받아와야 함.
+			System.out.println(isOk);
 			// 로그인 성공 시 대기실 창 열기
 			if(isOk) {
 				try {
-					
 					Parent signUp = FXMLLoader.load(WaitController.class.getResource("waitingroom.fxml"));
 					Stage stage = new Stage();
-					stage.setTitle("대기실");
+					stage.setTitle(loginId+"님의 대기실");
 					Scene scene = new Scene(signUp);
 					stage.setScene(scene);
 					stage.setResizable(false);
 					stage.show();
 					// 있던 창 숨기기 (네가 원한다면)
-					txtId.getScene().getWindow().hide();
+//					txtId.getScene().getWindow().hide();
+					
 					
 					
 
@@ -136,7 +151,7 @@ public class LoginController implements Initializable{
 				confirmId.setOnAction(e->{
 					System.out.println("중복확인");
 					String newId = txtNewId.getText();
-					if (existInTable(newId, "member_list")) {
+					if (DB.existInTable(newId, "member_list")) {
 						Alert alert = new Alert(AlertType.WARNING);
 						alert.setTitle("Warning");
 						alert.setHeaderText("Same ID exist");
@@ -208,10 +223,15 @@ public class LoginController implements Initializable{
 						
 						return;
 					}
+					// 서버 DB에 저장하도록 보내주기
+					String newUser = newId+","+newPw+","+newName;
+					send(0, -1, newUser);
 					
-					join(newId, newPw, newNick);
+//					DB.join(newId, newPw, newNick);
 					// 얘도 서버를 통해서 DB에 저장해주기.
-					partyUser = new PartyUser(getterNum(newId), newId, newNick, newPw);
+					partyUser = new PartyUser(DB.getterNum(newId), newId, newNick, newPw);
+					// 서버로 보내줘야 DB에 저장할 것 같군.
+					
 					System.out.println(partyUser);
 
 					dialog.close();
@@ -240,10 +260,12 @@ public class LoginController implements Initializable{
 		
 		System.out.println("서버에 연결 시도");
 		try {
-			InetAddress ip = InetAddress.getByName("192.168.1.31");
+			InetAddress ip = InetAddress.getByName("127.0.0.1");
 			// 서버에 연결 요청 보내기
 			socket = new Socket(ip, 5001);
 			System.out.println("[ 연결 완료 : "+socket.getRemoteSocketAddress()+"]");
+			// 계속 받기
+			receive();
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -251,283 +273,96 @@ public class LoginController implements Initializable{
 		}
 	}
 	
-	
-
-	public static int getterNum(String id) {
-		String driver = "com.mysql.jdbc.Driver";
-		String url = "jdbc:mysql://localhost:3306/myjava?useSSL=false";
-		String username = "myjava";
-		String password = "12345";
-		
-		Connection conn = null;	// 데이터 베이스 연결 정보
-		Statement stmt = null;	// 연결정보를 가지고 질의 전송을 도와주는 객체
-		ResultSet rs = null;	// 질의에 대한 결과값이 있으면 결과값을 담는 객체
-		
-		String sql;
-		int result;
-		
+	public void stopClient() {
+		System.out.println("연결 종료");
 		try {
-			Class.forName(driver);
-			conn = DriverManager.getConnection(url,username,password);
-			System.out.println("Database 연결 완료 : " + conn.toString());
-			
-			sql = "";
-			stmt = conn.createStatement();
-			
-			sql = "use project;";
-			result = stmt.executeUpdate(sql);	// 실행 완료된 행의 갯수
-			
-			sql = "select num from member_list where id = '" + id + "';";
-			rs = stmt.executeQuery(sql);			// 결과값
-			if (rs.next())	return rs.getInt(1);
-			
-			System.out.println("no matching ID.");
-			
-		} catch (ClassNotFoundException e1) {
-			System.out.println("class error");
-			e1.printStackTrace();
-		} catch (SQLException e1) {
-			System.out.println("sql error");
-			e1.printStackTrace();
-		}
-		
-		return -1;
-	}
-
-	public static String getterPw(String id) {
-		String driver = "com.mysql.jdbc.Driver";
-		String url = "jdbc:mysql://localhost:3306/myjava?useSSL=false";
-		String username = "myjava";
-		String password = "12345";
-		
-		Connection conn = null;	// 데이터 베이스 연결 정보
-		Statement stmt = null;	// 연결정보를 가지고 질의 전송을 도와주는 객체
-		ResultSet rs = null;	// 질의에 대한 결과값이 있으면 결과값을 담는 객체
-		
-		String sql;
-		int result;
-		
-		try {
-			Class.forName(driver);
-			conn = DriverManager.getConnection(url,username,password);
-			System.out.println("Database 연결 완료 : " + conn.toString());
-			
-			sql = "";
-			stmt = conn.createStatement();
-			
-			sql = "use project;";
-			result = stmt.executeUpdate(sql);	// 실행 완료된 행의 갯수
-			
-			sql = "select pw from member_list where id = '" + id + "';";
-			rs = stmt.executeQuery(sql);			// 결과값
-			if (rs.next())	return rs.getString(1);
-			
-			System.out.println("no matching ID.");
-			
-		} catch (ClassNotFoundException e1) {
-			System.out.println("class error");
-			e1.printStackTrace();
-		} catch (SQLException e1) {
-			System.out.println("sql error");
-			e1.printStackTrace();
-		}
-		
-		return "";
-	}	
-	
-	public static String getterNn(String id) {
-		String driver = "com.mysql.jdbc.Driver";
-		String url = "jdbc:mysql://localhost:3306/myjava?useSSL=false";
-		String username = "myjava";
-		String password = "12345";
-		
-		Connection conn = null;	// 데이터 베이스 연결 정보
-		Statement stmt = null;	// 연결정보를 가지고 질의 전송을 도와주는 객체
-		ResultSet rs = null;	// 질의에 대한 결과값이 있으면 결과값을 담는 객체
-		
-		String sql;
-		int result;
-		
-		try {
-			Class.forName(driver);
-			conn = DriverManager.getConnection(url,username,password);
-			System.out.println("Database 연결 완료 : " + conn.toString());
-			
-			sql = "";
-			stmt = conn.createStatement();
-			
-			sql = "use project;";
-			result = stmt.executeUpdate(sql);	// 실행 완료된 행의 갯수
-			
-			sql = "select nName from member_list where id = '" + id + "';";
-			rs = stmt.executeQuery(sql);			// 결과값
-			if (rs.next())	return rs.getString(1);
-			
-			System.out.println("no matching ID.");
-			
-		} catch (ClassNotFoundException e1) {
-			System.out.println("class error");
-			e1.printStackTrace();
-		} catch (SQLException e1) {
-			System.out.println("sql error");
-			e1.printStackTrace();
-		}
-		
-		return "";
-	}
-
-	public static boolean existInTable(String id, String tName) {
-		String driver = "com.mysql.jdbc.Driver";
-		String url = "jdbc:mysql://localhost:3306/myjava?useSSL=false";
-		String username = "myjava";
-		String password = "12345";
-		
-		Connection conn = null;	// 데이터 베이스 연결 정보
-		Statement stmt = null;	// 연결정보를 가지고 질의 전송을 도와주는 객체
-		ResultSet rs = null;	// 질의에 대한 결과값이 있으면 결과값을 담는 객체
-		
-		String sql;
-		int result;
-		
-		try {
-			Class.forName(driver);
-			conn = DriverManager.getConnection(url,username,password);
-			System.out.println("Database 연결 완료 : " + conn.toString());
-			
-			sql = "";
-			stmt = conn.createStatement();
-			
-			sql = "use project;";
-			result = stmt.executeUpdate(sql);	// 실행 완료된 행의 갯수
-			
-			sql = "select * from " + tName + " where id = '" + id + "';";
-			rs = stmt.executeQuery(sql);			// 결과값
-				
-			while(rs.next()) {						// rs.next : true(exist) <=> false(null)
-				String memName = rs.getString(2);
-				if (memName.equals(id)) {
-					return true;
-				} 
+			if(socket != null && !socket.isClosed()) {
+				socket.close();
 			}
-			
-			return false;
-			
-		} catch (ClassNotFoundException e1) {
-			System.out.println("class error");
-			e1.printStackTrace();
-		} catch (SQLException e1) {
-			System.out.println("sql error");
-			e1.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void send(int req, int opt, String data) {
+		data = req+"|"+opt+"|"+data;
+		System.out.println(data);
+		try {
+			byte[] bytes = data.getBytes("UTF-8");
+			OutputStream os = socket.getOutputStream();
+			os.write(bytes);
+			os.flush();
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 		
-		return false;
+		
 	}
-
-	public static void join(String name, String pw, String nick_name) {	// need arguments
-// assume that "nick_name" is not empty or blank
-		String sql;
-				
-		String driver = "com.mysql.jdbc.Driver";
-		String url = "jdbc:mysql://localhost:3306/myjava?useSSL=false";
-		String username = "myjava";
-		String password = "12345";
-		
-		Connection conn = null;	// 데이터 베이스 연결 정보
-		Statement stmt = null;	// 연결정보를 가지고 질의 전송을 도와주는 객체
-		ResultSet rs = null;	// 질의에 대한 결과값이 있으면 결과값을 담는 객체
-		
-		try {
-//
-			Class.forName(driver);
-			conn = DriverManager.getConnection(url,username,password);
-			System.out.println("Database 연결 완료 : " + conn.toString());
-// 
-			sql = "";
-			stmt = conn.createStatement();
-// 
-			boolean unique_name = false;
-			while (!unique_name) {
-/////////////////////////////////////////////////////////////////
-				System.out.println("ID");
-				System.out.println("PW");
-				System.out.println("nick_name");
-////////////////////////////////////////////////////////////////
-				sql = "use project;";
-				int result = stmt.executeUpdate(sql);	// 실행 완료된 행의 갯수
-				
-				sql = "select id from member_list;";
-				rs = stmt.executeQuery(sql);			// 결과값
-
-				unique_name = true;
-				while(rs.next()) {						// rs.next : true(exist) <=> false(null)
-					String name_list = rs.getString(1);
-					if (name_list.equals(name)) {
-						System.out.println("Already exist same name.");	// 동명이인 가능성 배제
-						unique_name = false;
-						break;
-					} 
-				}
-
-				if (unique_name) {
-					 sql = "INSERT INTO member_list (id, pw, nName) values ('" + name + "', '" + pw + "', '" + nick_name + "');";
-					System.out.println(sql);
-					result = stmt.executeUpdate(sql);
+	// 계속 서버로부터 받기
+	public void receive() {
+		new Thread(()->{
+			// 계속
+			while (true) {
+				try {
+					byte[] bytes = new byte[100];
+					InputStream is = socket.getInputStream();
+					int readByte = is.read(bytes);
+					// 안넘어오면 오류 발생
+					if(readByte == -1) throw new IOException();
+					
+					String data = new String(bytes, 0, readByte, "UTF-8");
+					// tokenize data;
+					StringTokenizer st = new StringTokenizer(data, "|");
+					int request = Integer.parseInt(st.nextToken());
+					int option = Integer.parseInt(st.nextToken());
+					
+					String message = "";
+					int count = 0;
+					while(st.hasMoreTokens()) {
+						if (count != 0) message += "|";
+						message = st.nextToken();
+					}
+					// req에 따라서 분류 처리
+						switch (request) {
+						case 0: //join
+							
+							break;
+						case 1: // login
+							if(message.equals("true")) {
+								isOk = true;
+							}else {
+								isOk = false;
+							}
+							break;
+						default:
+							break;
+					}
+					
+					
+					
+					System.out.println(data);
+				} catch (UnsupportedEncodingException e) {
+					e.printStackTrace();
+					break;
+				} catch (IOException e) {
+					e.printStackTrace();
+					break;
 				}
 			}
-		} catch (ClassNotFoundException e1) {
-			System.out.println("class error");
-			e1.printStackTrace();
-		} catch (SQLException e1) {
-			System.out.println("sql error");
-			e1.printStackTrace();
-		}
+		}).start();
+	}
+	//해야 함
+	public void createRoom() {
+		
+		
 	}
 	
-	public static boolean login(String name, String pw) {
-		String driver = "com.mysql.jdbc.Driver";
-		String url = "jdbc:mysql://localhost:3306/myjava?useSSL=false";
-		String username = "myjava";
-		String password = "12345";
-		
-		Connection conn = null;	// 데이터 베이스 연결 정보
-		Statement stmt = null;	// 연결정보를 가지고 질의 전송을 도와주는 객체
-		ResultSet rs = null;	// 질의에 대한 결과값이 있으면 결과값을 담는 객체
-		
-		String sql;
-		
-		try {
-			Class.forName(driver);
-			conn = DriverManager.getConnection(url,username,password);
-			System.out.println("Database 연결 완료 : " + conn.toString());
-			
-			sql = "";
-			stmt = conn.createStatement();			// 연결정보를 가지고 질의 전송을 도와주는 객체
-			
-			sql = "use project;";
-			int result = stmt.executeUpdate(sql);	// 실행 완료된 행의 갯수
+	
+	
+	
 
-			sql = "select * from member_list where id='" + name + "';";
-			rs = stmt.executeQuery(sql);			// 결과값 // rs.next : true(exist) <=> false(null)
-			
-			if (rs.next()) {
-				String memPw = rs.getString(3);
-				if (memPw.equals(pw)) {
-					System.out.println("login success");
-					return true;
-				} 
-			}
-			
-			System.out.println("Wrong ID or PW.");
-			
-		} catch (ClassNotFoundException e1) {
-			System.out.println("class error");
-			e1.printStackTrace();
-		} catch (SQLException e1) {
-			System.out.println("sql error");
-			e1.printStackTrace();
-		}
-		
-		return false;
-	}
+	
 	
 }

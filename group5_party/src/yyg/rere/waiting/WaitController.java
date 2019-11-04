@@ -20,6 +20,7 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.layout.FlowPane;
 import javafx.stage.Stage;
 import yyg.rere.Client.PartyUser;
+import yyg.rere.login.LoginController;
 import yyg.rere.waiting.roommodel.RoomModel;
 
 public class WaitController implements Initializable{
@@ -75,6 +76,8 @@ public class WaitController implements Initializable{
 			roomFlowPane.getChildren().add(newRoom);
 			
 			// 서버에 room 정보 던지기
+			LoginController main = new LoginController();
+			main.createRoom();
 			
 			
 //			send(1, -1, roomTitle);
