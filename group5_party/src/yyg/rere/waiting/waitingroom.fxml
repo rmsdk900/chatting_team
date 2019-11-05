@@ -22,10 +22,9 @@
    <right>
       <TableView fx:id="userTable" BorderPane.alignment="CENTER">
          <columns>
-            <TableColumn prefWidth="75.0" text="번호" />
-            <TableColumn prefWidth="75.0" text="닉네임" />
-         </columns>
-      </TableView>
+            <TableColumn prefWidth="100.0" text="순번" />
+            <TableColumn prefWidth="100.0" text="닉네임" />
+         </columns></TableView>
    </right>
    <bottom>
       <VBox alignment="CENTER_LEFT" spacing="5.0" BorderPane.alignment="CENTER">

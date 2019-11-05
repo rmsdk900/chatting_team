@@ -13,7 +13,7 @@ create database project;
 use project;
 
 create table member_list(
-	num int,
+	num int auto_increment,
     id char(20) not null,
     pw char(20) not null,
     nName char(20),
@@ -158,6 +158,44 @@ public class DB {
 		
 		return "";
 	}
+	
+	public static String getterNnI(int i) {
+		
+		Connection conn = null;	// 데이터 베이스 연결 정보
+		Statement stmt = null;	// 연결정보를 가지고 질의 전송을 도와주는 객체
+		ResultSet rs = null;	// 질의에 대한 결과값이 있으면 결과값을 담는 객체
+		
+		String sql;
+		int result;
+		
+		try {
+			Class.forName(driver);
+			conn = DriverManager.getConnection(url,username,password);
+			System.out.println("Database 연결 완료 : " + conn.toString());
+			
+			sql = "";
+			stmt = conn.createStatement();
+			
+			sql = "use project;";
+			result = stmt.executeUpdate(sql);	// 실행 완료된 행의 갯수
+			
+			sql = "select nName from member_list where num = '" + i + "';";
+			rs = stmt.executeQuery(sql);			// 결과값
+			if (rs.next())	return rs.getString(1);
+			
+			System.out.println("no matching ID.");
+			
+		} catch (ClassNotFoundException e1) {
+			System.out.println("class error");
+			e1.printStackTrace();
+		} catch (SQLException e1) {
+			System.out.println("sql error");
+			e1.printStackTrace();
+		}
+		
+		return "";
+	}
+	
 
 	public static boolean existInTable(String id, String tName) {
 		
@@ -326,10 +364,10 @@ public class DB {
 			sql = "use project;";
 			result = stmt.executeUpdate(sql);	// 실행 완료된 행의 갯수
 
-			sql = "INSERT INTO room_list (num, rName) values ("+num+", '"+rName+"');";
-			rs = stmt.executeQuery(sql);			// 결과값 
+			sql = "insert into room_list values ("+num+", '"+rName+"');";
+			result = stmt.executeUpdate(sql);			// 결과값 
 			
-			if (rs.next()) return;
+//			if (rs.next()) return;
 			
 		} catch (ClassNotFoundException e1) {
 			System.out.println("class error");
@@ -405,5 +443,10 @@ public class DB {
 //		}
 		
 		return;
+	}
+
+	public static String getterNn(int a) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

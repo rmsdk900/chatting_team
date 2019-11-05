@@ -2,6 +2,7 @@ package yyg.rere.server;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -9,6 +10,7 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.StringTokenizer;
+
 
 import yyg.rere.DB.DB;
 
@@ -37,9 +39,6 @@ class Pair {
 		this.num = num;
 	}
 	
-//	public void send() {
-//		
-//	}
 }
 
 public class Server {
@@ -49,8 +48,8 @@ public class Server {
 	private static boolean running = true;
 	static ServerSocket serverSocket;
 	static HashMap<Integer, Pair> online = new HashMap<>();				// online user
-	// online 의 Integer
 	static HashMap<Integer, ArrayList<Integer>> rooms = new HashMap<>();	// room control
+	static ArrayList<Integer> online_num = new ArrayList<>();
 	
 	public static void main(String [] args) {
 		try {
@@ -117,6 +116,13 @@ public class Server {
 				break whole;
 			}
 		}
+		int db_num = online.get(num).getNum();
+		for (int a = 0; a < online_num.size(); a++) {
+			if (db_num == online_num.get(a)) {
+				online_num.remove(db_num);
+				break;
+			}
+		}
 	
 		try {
 			online.get(num).getSocket().close();
@@ -133,7 +139,7 @@ public class Server {
 		Thread t = new Thread(() -> {	// what is this lambda expression about?
 			while(true) {
 				try {
-					byte[] bytes = new byte[100];
+					byte[] bytes = new byte[1000];
 					InputStream is = socket.getInputStream();					
 					
 					int readByte = is.read(bytes);
@@ -143,6 +149,7 @@ public class Server {
 					
 					// tokenize data
 					StringTokenizer st = new StringTokenizer(data, "|");
+					System.out.println(data);
 					int request = Integer.parseInt(st.nextToken());
 					int option = Integer.parseInt(st.nextToken());
 					
@@ -150,7 +157,8 @@ public class Server {
 					int count = 0;
 					while(st.hasMoreTokens()) {
 						if (count != 0) message += "|";
-						message = st.nextToken();
+						count++;
+						message += st.nextToken();
 					}
 					
 					switch(request) {	// request|option|message
@@ -197,6 +205,12 @@ public class Server {
 						case 6: // logout
 							delClient(s_num);
 							break;
+						case 7: // user
+							send(socket, 7, -1, "");
+							break;
+						case 8: // room
+							send(socket, 8, -1, "");
+							break;	
 						default:
 							break;
 					}
@@ -211,17 +225,52 @@ public class Server {
 	}
 	
 	private static void send(Socket socket, int request, int option, String message) {
-		System.out.println("'send'" + socket);
+		System.out.println("'send' " + socket + ": " + request + "|" + option + "|" + message);
+		OutputStream os = null;
+		ObjectOutputStream oos = null;
+		
 		try {
-			OutputStream os = null;
 			os = socket.getOutputStream();
-			String refined = request + "|" + request + "|" + message; 
-			byte[] bytes = refined.getBytes("UTF-8");
-			os.write(bytes);
-			os.flush();		
+			
+			switch(request) {
+				case 7:
+					oos = new ObjectOutputStream(os);
+					ArrayList<String> online_num_to_nick = new ArrayList<>();
+					for (int a : online_num) {
+						online_num_to_nick.add(DB.getterNnI(a));
+					}
+					oos.writeObject(online_num_to_nick);
+					oos.flush();
+					online_num_to_nick.clear();
+					oos.close();
+					os.close();
+					break;
+				case 8:
+					oos = new ObjectOutputStream(os);
+					oos.writeObject(online);
+					oos.flush();
+					oos.close();
+					os.close();
+					break;
+				default:
+					String refined = request + "|" + option + "|" + message;
+					System.out.println(refined);
+					byte[] bytes = refined.getBytes("UTF-8");
+					os.write(bytes);
+					os.flush();
+					os.close();
+					break;
+			}		
 		} catch (Exception e) {
+			try {
+				os.close();
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
 			System.out.println("Error in 'send'");
 		}
+		
+
 	}
 	
 }

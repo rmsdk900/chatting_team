@@ -156,6 +156,47 @@ public class DB {
 		
 		return "";
 	}
+	
+	public static String getterNn(int i) {
+		String driver = "com.mysql.jdbc.Driver";
+		String url = "jdbc:mysql://localhost:3306/myjava?useSSL=false";
+		String username = "myjava";
+		String password = "12345";
+		
+		Connection conn = null;	// 데이터 베이스 연결 정보
+		Statement stmt = null;	// 연결정보를 가지고 질의 전송을 도와주는 객체
+		ResultSet rs = null;	// 질의에 대한 결과값이 있으면 결과값을 담는 객체
+		
+		String sql;
+		int result;
+		
+		try {
+			Class.forName(driver);
+			conn = DriverManager.getConnection(url,username,password);
+			System.out.println("Database 연결 완료 : " + conn.toString());
+			
+			sql = "";
+			stmt = conn.createStatement();
+			
+			sql = "use project;";
+			result = stmt.executeUpdate(sql);	// 실행 완료된 행의 갯수
+			
+			sql = "select nName from member_list where num = '" + i + "';";
+			rs = stmt.executeQuery(sql);			// 결과값
+			if (rs.next())	return rs.getString(1);
+			
+			System.out.println("no matching ID.");
+			
+		} catch (ClassNotFoundException e1) {
+			System.out.println("class error");
+			e1.printStackTrace();
+		} catch (SQLException e1) {
+			System.out.println("sql error");
+			e1.printStackTrace();
+		}
+		
+		return "";
+	}
 
 	public static boolean existInTable(String id, String tName) {
 		String driver = "com.mysql.jdbc.Driver";

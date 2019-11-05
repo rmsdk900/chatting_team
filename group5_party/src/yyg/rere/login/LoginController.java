@@ -8,6 +8,8 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.StringTokenizer;
 
@@ -31,6 +33,8 @@ import yyg.rere.DB.DB;
 import yyg.rere.waiting.WaitController;
 // 로그인 관련 처리하는 녀석이자 socket 관련 처리하는 녀석
 public class LoginController implements Initializable{
+	// stage 불러오기
+	private Stage primaryStage;
 	
 	// 생성자 ? 
 	public LoginController() {}
@@ -39,6 +43,9 @@ public class LoginController implements Initializable{
 	@FXML private TextField txtId;
 	@FXML private PasswordField txtPw;
 	@FXML private Button btnLogin, btnSignup, btnExit;
+	
+	// 다른 controller
+	WaitController controller;
 	
 	// 커스텀 다이얼로그 
 	private Stage dialog;
@@ -98,15 +105,18 @@ public class LoginController implements Initializable{
 			// 로그인 성공 시 대기실 창 열기
 			if(isOk) {
 				try {
-					Parent signUp = FXMLLoader.load(WaitController.class.getResource("waitingroom.fxml"));
-					Stage stage = new Stage();
-					stage.setTitle(loginId+"님의 대기실");
-					Scene scene = new Scene(signUp);
-					stage.setScene(scene);
-					stage.setResizable(false);
-					stage.show();
-					// 있던 창 숨기기 (네가 원한다면)
-//					txtId.getScene().getWindow().hide();
+					FXMLLoader loader = new FXMLLoader(getClass().getResource("../waiting/waitingroom.fxml"));
+//					//fxml파일에 대한 정보를 가져옴
+					Parent root = loader.load();
+					controller = loader.getController();
+					controller.setPrimaryStage(primaryStage);
+					controller.setLoginController(this);
+					
+					Scene scene = new Scene(root);
+					primaryStage.setScene(scene);
+					primaryStage.setTitle(loginId+"님의 대기실");
+					primaryStage.setResizable(false);
+					primaryStage.show();
 					
 					
 					
@@ -228,14 +238,8 @@ public class LoginController implements Initializable{
 					// 서버 DB에 저장하도록 보내주기
 					String newUser = newId+","+newPw+","+newName;
 					send(0, -1, newUser);
+			
 					
-//					DB.join(newId, newPw, newNick);
-					// 얘도 서버를 통해서 DB에 저장해주기.
-//					partyUser = new PartyUser(DB.getterNum(newId), newId, newNick, newPw);
-					// 서버로 보내줘야 DB에 저장할 것 같군.
-					
-					System.out.println(partyUser);
-
 					dialog.close();
 				});
 
@@ -270,6 +274,7 @@ public class LoginController implements Initializable{
 			receive();
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
+
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -322,7 +327,7 @@ public class LoginController implements Initializable{
 			// 계속
 			while (true) {
 				try {
-					byte[] bytes = new byte[100];
+					byte[] bytes = new byte[512];
 					InputStream is = socket.getInputStream();
 					int readByte = is.read(bytes);
 					// 안넘어오면 오류 발생
@@ -332,13 +337,15 @@ public class LoginController implements Initializable{
 					// tokenize data;
 					StringTokenizer st = new StringTokenizer(data, "|");
 					int request = Integer.parseInt(st.nextToken());
+					
 					int option = Integer.parseInt(st.nextToken());
 					
 					String message = "";
 					int count = 0;
 					while(st.hasMoreTokens()) {
 						if (count != 0) message += "|";
-						message = st.nextToken();
+						count++;
+						message += st.nextToken();
 					}
 					// req에 따라서 분류 처리
 						switch (request) {
@@ -352,10 +359,29 @@ public class LoginController implements Initializable{
 								isOk = false;
 							}
 							break;
-							
 						case 7: // userList
+							// 마지막 , 지우기
+							message = message.substring(0, message.length()-1);
+							// 닉네임 array 만들기.
+							String[] names=message.split(",");
+							int userCount = 0;
+							HashMap<Integer, String> namesList = new HashMap<>();
+							for(String s: names) {
+								namesList.put(userCount, s);
+								userCount++;
+							}
+							
+							
+							controller.updateUsers(namesList);
+							
+							
 							break;
 						case 8: // roomList
+							// 마지막 , 지우기
+							message = message.substring(0, message.length()-1);
+							// 방 이름 array
+							String[] rNames=message.split(",");
+							controller.updateRooms(rNames);
 							break;
 						default:
 							break;
@@ -374,25 +400,36 @@ public class LoginController implements Initializable{
 			}
 		}).start();
 	}
-	//해야 함
+	//서버 데이터베이스에 넣는 것은 됨.
 	public void createRoom(String title) {
 		send(2, -1, title);
 		
 	}
+	public void delRoom(String title) {
+		
+	}
+	
 	
 	// 유저리스트
-	public void updateUserList() {
+	public void updateUserList(){
 		//유저리스트 요청 보내기
 		send(7,-1,"0");
+		System.out.println("유저 목록 업뎃");
+		
+		
 	}
 	// 방 목록
-	public void updateRoomList() {
+	public void updateRoomList(){
 		// 방 목록 요청 보내기
 		send(8,-1,"0");
+		System.out.println("방 목록 업뎃");
+		
 	}
 	
 	
-	
+	public void setPrimaryStage(Stage primaryStage) {
+		this.primaryStage = primaryStage;
+	}
 	
 
 	
