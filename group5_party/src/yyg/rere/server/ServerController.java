@@ -366,7 +366,7 @@ public class ServerController implements Initializable{
 						
 //						
 					} catch (IOException e) {
-						stopServer();
+						
 						break;
 					}
 					

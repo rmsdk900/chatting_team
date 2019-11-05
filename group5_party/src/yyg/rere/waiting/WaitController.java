@@ -169,6 +169,11 @@ public class WaitController implements Initializable{
 
 
 	public void updateRooms(String[] rNames) {
+		// 일단 지울까?
+		while(!roomFlowPane.getChildren().isEmpty()) {
+			roomFlowPane.getChildren().remove(0);
+		}
+		
 		// 방 이름 만큼 형성해야 함.
 		for(int i=0; i<rNames.length;i++) {
 			Parent room;
