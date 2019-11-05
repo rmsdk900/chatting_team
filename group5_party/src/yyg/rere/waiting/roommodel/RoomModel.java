@@ -11,7 +11,7 @@ import javafx.scene.layout.AnchorPane;
 
 public class RoomModel implements Initializable{
 
-	@FXML private Label lblRoomName, lblRoomOwner, lblUserCount;
+	@FXML private Label lblRoomName, lblUserCount;
 	@FXML private AnchorPane roomIcon;
 	
 	

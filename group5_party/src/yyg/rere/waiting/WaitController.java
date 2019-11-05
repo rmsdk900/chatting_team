@@ -30,9 +30,8 @@ public class WaitController implements Initializable{
 	@FXML private Button btnCreateRoom;
 	@FXML private FlowPane roomFlowPane;
 	
-	// 얘네가 문제
-//	PartyUser partyUser;
-//	Socket socket = partyUser.getClient();
+	// 생성자
+	WaitController() {}
 	
 	
 	@Override
@@ -69,18 +68,17 @@ public class WaitController implements Initializable{
 		try {
 			newRoom = FXMLLoader.load(RoomModel.class.getResource("roommodel.fxml"));
 			Label lblRoomName = (Label) newRoom.lookup("#lblRoomName");
-			Label lblRoomOwner = (Label) newRoom.lookup("#lblRoomOwner");
+			
 			Label lblUserCount = (Label) newRoom.lookup("#lblUserCount");
 			lblRoomName.setText(roomTitle);
-			lblRoomOwner.setText(roomOwner);
+			
 			roomFlowPane.getChildren().add(newRoom);
 			
 			// 서버에 room 정보 던지기
 			LoginController main = new LoginController();
-			main.createRoom();
+			main.createRoom(roomTitle);
 			
 			
-//			send(1, -1, roomTitle);
 			
 			
 			
@@ -103,21 +101,5 @@ public class WaitController implements Initializable{
 		
 	}
 	
-//	public void send(int req, int opt, String data) {
-//		data = req+"|"+opt+"|"+data;
-//		
-//		try {
-//			byte[] bytes = data.getBytes("UTF-8");
-//			OutputStream os = socket.getOutputStream();
-//			os.write(bytes);
-//			os.flush();
-//		} catch (UnsupportedEncodingException e) {
-//			e.printStackTrace();
-//			
-//		} catch (IOException e) {
-//			e.printStackTrace();
-//		}
-//		roomName.clear();
-//	}
 	
 }

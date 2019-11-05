@@ -13,7 +13,7 @@ create database project;
 use project;
 
 create table member_list(
-	num int auto_increment,
+	num int,
     id char(20) not null,
     pw char(20) not null,
     nName char(20),
@@ -21,7 +21,7 @@ create table member_list(
 );
 
 create table room_list(
-	num int auto_increment,
+	num int,
     rName char(50) not null,
     
     primary key (num)

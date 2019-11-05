@@ -6,38 +6,51 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.StringTokenizer;
 
 import yyg.rere.DB.DB;
 
-public class ChatServer {
-
-	private static int u_count = 0;
-	private static int r_count = 0;
-	private static boolean running = true;
-	static ServerSocket serverSocket;
-	static HashMap<Integer, Socket> online = new HashMap<>();				// online user
-	static HashMap<Integer, ArrayList<Integer>> rooms = new HashMap<>();	// room control
-//	Socket socket;
+class Pair {
+	private Socket socket;
+	private int num;
 	
-//	// 가져올 클라이언트들
-//	class PartyUser {
-//		
-//		int uNumber;
-//		String uId;
-//		String uPassword;
-//		String uName;
-//		Socket socket;
-//		
-//		PartyUser(Socket socket){
-//			this.socket = socket;
-//			
-//		}
+	public Pair(Socket socket) {
+		this.socket = socket;
+		this.num = 0;
+	}
+	public Pair(Socket socket, int num) {
+		this.socket = socket;
+		this.num = num;
+	}
+	public Socket getSocket() {
+		return socket;
+	}
+	public void setS(Socket socket) {
+		this.socket = socket;
+	}
+	public int getNum() {
+		return num;
+	}
+	public void setNum(int num) {
+		this.num = num;
+	}
+	
+//	public void send() {
 //		
 //	}
+}
+
+public class Server {
+
+	private static int r_count = 0;
+	private static int u_count = 0;
+	private static boolean running = true;
+	static ServerSocket serverSocket;
+	static HashMap<Integer, Pair> online = new HashMap<>();				// online user
+	// online 의 Integer
+	static HashMap<Integer, ArrayList<Integer>> rooms = new HashMap<>();	// room control
 	
 	public static void main(String [] args) {
 		try {
@@ -61,7 +74,7 @@ public class ChatServer {
 		try {
 			for (int a : online.keySet()) {
 				// what order?
-				online.get(a).close();		
+				online.get(a).getSocket().close();		
 				online.remove(a);
 			}
 			if(serverSocket != null && !serverSocket.isClosed()) {
@@ -76,9 +89,10 @@ public class ChatServer {
 			Socket socket = null;
 			socket = serverSocket.accept();
 			if (socket != null) {
-				int s_num = u_count;
-				online.put(u_count++, socket);
+				int s_num = u_count;	//////////////////////////////////////
+				online.put(u_count++, new Pair(socket));		//////////////////////////
 				System.out.println("new client" + s_num + " accepted");
+				send(socket, 0, -1, Integer.toString(s_num));
 				receive(s_num, socket);
 			}
 			else {
@@ -105,7 +119,7 @@ public class ChatServer {
 		}
 	
 		try {
-			online.get(num).close();
+			online.get(num).getSocket().close();
 		} catch (IOException e) {
 			System.out.println("fail 'delClient' in removing socket");
 			e.printStackTrace();
@@ -113,7 +127,7 @@ public class ChatServer {
 		
 		online.remove(num);
 	}
-	
+	// s_num = socket number ; 위에 online의 키 값.
 	private static void receive(int s_num, Socket socket) {
 		System.out.println("client" + s_num + " in 'receive' function");
 		Thread t = new Thread(() -> {	// what is this lambda expression about?
@@ -150,9 +164,12 @@ public class ChatServer {
 						case 1:	// login
 							String[] login = message.split(",");
 							boolean isOk = DB.login(login[0], login[1]);
-							System.out.println(isOk);
-							String bool=""+isOk;
-							sendNotice(1,0,bool);
+							System.out.println("client" + s_num + " login permission : " + isOk);
+							if(isOk) {
+								send(socket, 1, -1, "1");
+								online.get(s_num).setNum(DB.getterNum(login[0]));
+							}
+							else	  send(socket, 1, -1, "0");
 							break;
 						case 2: // make a room and enter
 							int temp = r_count++;
@@ -171,7 +188,11 @@ public class ChatServer {
 							}
 							break;
 						case 5: // message to the room		[option]
-							send(option, message);
+							Socket temp_socket;
+							for (int a = 0; a < rooms.get(option).size(); a++) {
+								temp_socket = online.get(rooms.get(option).get(a)).getSocket();
+								send(temp_socket, 2, option, message);		
+							}
 							break;
 						case 6: // logout
 							delClient(s_num);
@@ -189,36 +210,18 @@ public class ChatServer {
 		t.start();
 	}
 	
-	private static void sendNotice(int req, int rNum, String message) {
-		try {
-			OutputStream os = online.get(0).getOutputStream();
-//			OutputStream os = online.get(u_count).getOutputStream();
-			message = req+"|"+rNum+"|"+message;
-			byte[] bytes = message.getBytes("UTF-8");
-			os.write(bytes);
-			os.flush();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-	
-	private static void send(int r_num, String message) {
-		System.out.println("from room" + r_num + ", got some message");
+	private static void send(Socket socket, int request, int option, String message) {
+		System.out.println("'send'" + socket);
 		try {
 			OutputStream os = null;
-			Socket socket = null;
-			for (int a = 0; a < rooms.get(r_num).size(); a++) {
-				socket = online.get(rooms.get(r_num).get(a));
-				os = socket.getOutputStream();
-				byte[] bytes = message.getBytes("UTF-8");
-				os.write(bytes);
-				os.flush();		
-			}
+			os = socket.getOutputStream();
+			String refined = request + "|" + request + "|" + message; 
+			byte[] bytes = refined.getBytes("UTF-8");
+			os.write(bytes);
+			os.flush();		
 		} catch (Exception e) {
 			System.out.println("Error in 'send'");
 		}
 	}
-	
-	
 	
 }

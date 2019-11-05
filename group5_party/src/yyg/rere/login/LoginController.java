@@ -33,9 +33,7 @@ import yyg.rere.waiting.WaitController;
 public class LoginController implements Initializable{
 	
 	// 생성자 ? 
-	public LoginController() {
-		
-	}
+	public LoginController() {}
 	
 	// fxml 변수
 	@FXML private TextField txtId;
@@ -52,6 +50,9 @@ public class LoginController implements Initializable{
 	
 	// 로그인 여부 확인
 	boolean isOk;
+	
+	// 서버에 있는 소켓 리스트에서 클라이언트의 소켓이 들어가있는 key값.
+	private int serverKey = 0;
 	// 
 	@Override
 	public void initialize(URL arg0, ResourceBundle arg1) {
@@ -82,7 +83,8 @@ public class LoginController implements Initializable{
 			String loginId = txtId.getText();
 			String loginPw = txtPw.getText();
 			// 로그인 확인
-			String data = loginId+","+loginPw;
+			// data = "id,pw,serverKey";
+			String data = loginId+","+loginPw+","+serverKey;
 			//로그인 허가 신호 보내기
 			send(1, -1, data);
 			//받아올 시간이 필요한가 봐
@@ -229,7 +231,7 @@ public class LoginController implements Initializable{
 					
 //					DB.join(newId, newPw, newNick);
 					// 얘도 서버를 통해서 DB에 저장해주기.
-					partyUser = new PartyUser(DB.getterNum(newId), newId, newNick, newPw);
+//					partyUser = new PartyUser(DB.getterNum(newId), newId, newNick, newPw);
 					// 서버로 보내줘야 DB에 저장할 것 같군.
 					
 					System.out.println(partyUser);
@@ -260,7 +262,7 @@ public class LoginController implements Initializable{
 		
 		System.out.println("서버에 연결 시도");
 		try {
-			InetAddress ip = InetAddress.getByName("127.0.0.1");
+			InetAddress ip = InetAddress.getByName("192.168.1.31");
 			// 서버에 연결 요청 보내기
 			socket = new Socket(ip, 5001);
 			System.out.println("[ 연결 완료 : "+socket.getRemoteSocketAddress()+"]");
@@ -301,6 +303,20 @@ public class LoginController implements Initializable{
 		
 	}
 	// 계속 서버로부터 받기
+	// requset|option|message
+	/**
+	 * request:
+	 * 	0: addClient -> server에 저장된 자기 소켓을 이용할 수 있는 key값 
+	 * 	1: login permission 
+	 * 	2: communication
+	 * option:
+	 * 	request 상관없이 -1: default
+	 * 	request ==2 일때만 : room_number
+	 * message:
+	 * 	request ==0: server에 있는 자기 소켓을 value로 가지고 있는 key값
+	 * 			==1: permission boolean값;
+	 * 			==2: message 
+	 */
 	public void receive() {
 		new Thread(()->{
 			// 계속
@@ -326,15 +342,20 @@ public class LoginController implements Initializable{
 					}
 					// req에 따라서 분류 처리
 						switch (request) {
-						case 0: //join
-							
+						case 0: //socket 키값 받기.
+							serverKey = Integer.parseInt(message);
 							break;
 						case 1: // login
-							if(message.equals("true")) {
+							if(message.equals("1")) {
 								isOk = true;
 							}else {
 								isOk = false;
 							}
+							break;
+							
+						case 7: // userList
+							break;
+						case 8: // roomList
 							break;
 						default:
 							break;
@@ -354,9 +375,20 @@ public class LoginController implements Initializable{
 		}).start();
 	}
 	//해야 함
-	public void createRoom() {
+	public void createRoom(String title) {
+		send(2, -1, title);
 		
-		
+	}
+	
+	// 유저리스트
+	public void updateUserList() {
+		//유저리스트 요청 보내기
+		send(7,-1,"0");
+	}
+	// 방 목록
+	public void updateRoomList() {
+		// 방 목록 요청 보내기
+		send(8,-1,"0");
 	}
 	
 	
