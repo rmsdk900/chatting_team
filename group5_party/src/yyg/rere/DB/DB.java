@@ -251,7 +251,7 @@ public class DB {
 		
 		try {
 //////////////////////////////////////////////////////////
-			Scanner sc = new Scanner(System.in);
+			
 //////////////////////////////////////////////////////////
 			Class.forName(driver);
 			conn = DriverManager.getConnection(url,username,password);
@@ -292,7 +292,7 @@ public class DB {
 				}
 			}
 			
-			sc.close();
+			
 		} catch (ClassNotFoundException e1) {
 			System.out.println("class error");
 			e1.printStackTrace();
