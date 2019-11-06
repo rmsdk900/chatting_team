@@ -25,108 +25,98 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.layout.FlowPane;
 import javafx.stage.Stage;
 import yyg.rere.login.LoginController;
-import yyg.rere.waiting.roommodel.RoomModel;
+import yyg.rere.room.RoomController;
 
-public class WaitController implements Initializable{
+public class WaitController {
 	
-	@FXML private TableView<UserListVO> userTable;
-	@FXML private TextField roomName;
-	@FXML private Button btnCreateRoom;
-	@FXML private FlowPane roomFlowPane;
+	// gui 요소들
+	TableView<UserListVO> userTable;
+	TextField roomName;
+	Button btnCreateRoom;
+	FlowPane roomFlowPane;
+	
+	
 	
 	// stage 불러오기
 	private Stage primaryStage;
 	// loginController 불러오기
-	private LoginController controller;
-	// 생성자
+	private LoginController loginController;
+	// RoomModel, RoomController 생성
 	
+	private RoomController roomController;
 	
-	@Override
-	public void initialize(URL location, ResourceBundle resources) {
+	public WaitController(LoginController loginController, String id) {
+		this.loginController = loginController;
+		// 새 화면 띄우자
+		try {
+			FXMLLoader loader = new FXMLLoader(getClass().getResource("../waiting/waitingroom.fxml"));
+//			//fxml파일에 대한 정보를 가져옴
+			Parent root = loader.load();
+			
+			
+			userTable = (TableView) root.lookup("#userTable");
+			roomName = (TextField) root.lookup("#roomName");
+			btnCreateRoom = (Button) root.lookup("#btnCreateRoom");
+			roomFlowPane = (FlowPane) root.lookup("#roomFlowPane");
+			
+			Stage stage = new Stage();
+			Scene scene = new Scene(root);
+			stage.setScene(scene);
+			stage.setTitle(id+"대기실");
+			stage.setResizable(false);
+			stage.show();
+//			primaryStage.hide();
+			
+			
+			
+			
+			
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		
-		Thread updateWait = new Thread(()->{
-			while (true) {
-				try {
-					Thread.sleep(500);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-				Platform.runLater(()->update());
-			}
-		}); 
-		updateWait.setDaemon(true);
-		updateWait.start();
-		
-		
+		// 실행됬을 때 기능들
+		loginController.updateUserList();
+					
+					
 		roomName.requestFocus();
-		
 		roomName.setOnKeyPressed(key->{
 			if(key.getCode().equals(KeyCode.ENTER)) {
 				btnCreateRoom.fire();
 			}
 		});
-		
-		
-		
+			
 		btnCreateRoom.setOnAction(event->{
-			CreateRoom();
+			String roomTitle = roomName.getText();
+			if(roomTitle.equals("")) {
+				roomTitle = "이름없음";
+			}
+			// loginController의 메소드 실행하기
+			loginController.createRoom(roomTitle);
+			// 방 목록 업데이트
+						
+			enterRoom(roomTitle);
 		});
 		
+		loginController.updateRoomList();
 		
 	}
+	
 
+	// 방 들어가기
+	public void enterRoom(String rName) {
+		System.out.println("들어간다?");
+		// roomModel에서 title 가져오기
+		
+		RoomController partyRoom = new RoomController(this, rName);
+		
+		
 
-	public void CreateRoom() {
-		String roomTitle = roomName.getText();
-		if(roomTitle.equals("")) {
-			roomTitle = "이름없음";
-		}
-		String roomOwner = "root";
-		// 새로운 방 아이콘
-		Parent newRoom; 
-		
-		// 채팅 방
-		Parent room;
-		try {
-			newRoom = FXMLLoader.load(RoomModel.class.getResource("roommodel.fxml"));
-			Label lblRoomName = (Label) newRoom.lookup("#lblRoomName");
-			
-			Label lblUserCount = (Label) newRoom.lookup("#lblUserCount");
-			lblRoomName.setText(roomTitle);
-			
-			roomFlowPane.getChildren().add(newRoom);
-			
-			// loginController의 메소드 실행하기
-//			FXMLLoader loader = new FXMLLoader(getClass().getResource("login/login.fxml"));
-//			LoginController controller = loader.getController();
-			controller.createRoom(roomTitle);
-			
-			
-			
-			
-			
-			room = FXMLLoader.load(getClass().getResource("../room/partyroom.fxml"));
-			Stage stage = new Stage();
-			stage.setTitle(roomTitle);
-			Scene scene = new Scene(room);
-			stage.setScene(scene);
-			stage.setResizable(false);
-			stage.show();
-			// 있던 창 숨기기 (네가 원한다면)
-//			txtId.getScene().getWindow().hide();
-
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		
-		
-		
 		
 	}
 	// 새로고침
 	public void update() {
-		controller.updateRoomList();
-		controller.updateUserList();
+		loginController.updateRoomList();
 	}
 	
 	public void setPrimaryStage(Stage primaryStage) {
@@ -135,12 +125,13 @@ public class WaitController implements Initializable{
 
 
 	public void setLoginController(LoginController loginController) {
-		this.controller = loginController;
+		this.loginController = loginController;
 		
 	}
 
 	// 리스트를 userTable에 띄우기
 	public void updateUsers(HashMap<Integer, String> namesList) {
+		System.out.println("유저리스트 업뎃");
 		// 리스트 내용 추가
 		ObservableList<UserListVO> iul = FXCollections.observableArrayList();
 		for ( Map.Entry<Integer, String> elem: namesList.entrySet()) {
@@ -166,39 +157,45 @@ public class WaitController implements Initializable{
 		// 최종적으로 리스트 집어넣기
 		userTable.setItems(iul);
 	}
-
-
+//
+//
 	public void updateRooms(String[] rNames) {
 		// 일단 지울까?
-		Platform.runLater(()->{
-			while(!roomFlowPane.getChildren().isEmpty()) {
-				roomFlowPane.getChildren().remove(0);
-			}
-		});
+//		if(!roomFlowPane.getChildren().isEmpty()) {
+//			Platform.runLater(()->{
+//				roomFlowPane.getChildren().clear();
+//			});
+//		}
 		
-		
-		
-		// 방 이름 만큼 형성해야 함.
-		for(int i=0; i<rNames.length;i++) {
-			Parent room;
-			
+		for(int i=0;i<rNames.length;i++) {
+
+//			//fxml파일에 대한 정보를 가져옴
 			try {
-				room = FXMLLoader.load(RoomModel.class.getResource("roommodel.fxml"));
-				Label lblRoomName = (Label) room.lookup("#lblRoomName");
-				
-//				Label lblUserCount = (Label) room.lookup("#lblUserCount");
+
+				Parent roomIcon = FXMLLoader.load(getClass().getResource("roommodel/roommodel.fxml"));
+				Label lblRoomName = (Label) roomIcon.lookup("#lblRoomName");
 				lblRoomName.setText(rNames[i]);
 				
 				Platform.runLater(()->{
-					roomFlowPane.getChildren().add(room);
+//					roomFlowPane이 null값이라고?
+					roomFlowPane.getChildren().add(roomIcon);
 				});
-			
+				
+				
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-			
 		}
+		
+		
+		
+
+		
+		
+		
+		
 		return;
 	}
+
 	
 }

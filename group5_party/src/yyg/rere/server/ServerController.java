@@ -28,6 +28,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
+import javafx.scene.input.KeyCode;
 import yyg.rere.DB.DB;
 
 public class ServerController implements Initializable{
@@ -53,11 +54,10 @@ public class ServerController implements Initializable{
 	Map<Integer, PartyUser> onUsers = new Hashtable<>();
 	
 	// 방 리스트
-	List<String> onRoomList = new ArrayList<>();
-//	Map<Integer, String> onRoomList = new HashMap<>();
+	Map<Integer, String> onRoomList = new Hashtable<>();
 	
-	// 그 방에 들어간 접속자 들
-	Map<Integer, String> onRoomMembers = new HashMap<>();
+	// 그 방에 들어간 접속자 들 <방 번호 , <구성인원들>>
+	Map<Integer, Vector<String>> onRoomMembers = new Hashtable<>();
 	
 	// 가져올 클라이언트 정보를 담고 있는 녀석
 	class PartyUser{
@@ -169,11 +169,20 @@ public class ServerController implements Initializable{
 							// request에 따라 처리 다르게
 							switch(request) {	// request|option|message
 								case 0: // join
-									String[] infos = message.split(",");
-									for(String str : infos) {
-										System.out.println(str);
+									
+									if(option==-1) {
+										String[] infos = message.split(",");
+										for(String str : infos) {
+											System.out.println(str);
+											
+										}
+										DB.join(infos[0], infos[1], infos[2]);
+									}else if(option==1) {
+										boolean possible=DB.existInTable(message, "member_list");
+										send(0,1,possible+"");
 									}
-									DB.join(infos[0], infos[1], infos[2]);
+									
+									
 									break;
 								case 1:	// login
 									// login[0] = loginId / login[1] = pw / login[2] = serverKey;
@@ -185,32 +194,50 @@ public class ServerController implements Initializable{
 										// 로그인한 유저의 정보를 담는 맵에 넣기
 										onUsers.put(connUserCount, new PartyUser(connSockets.get(key)));
 										onUsers.get(connUserCount).setuName(DB.getterNn(login[0]));
-										connUserCount++;
+										// onUsers에 접속할 수 있는 key값 보내자. 
 										send(1, -1, "1");
+										connUserCount++;
+										
+										
 									// 로그인 실패할 경우
 									}else {
 										send(1, -1, "0");
 									}
 									break;
 								case 2: // make a room and enter
+									room_count++;
 									// message = title
 									System.out.println(message);
 									//서버 데이터베이스에 방 이름이랑 번호 추가
 									// 방 리스트가 필요 있나?
 //									DB.setRoom(room_count, message);
 									// 방 리스트에 넣기
-									onRoomList.add(message);
-									room_count++;
+									onRoomList.put(room_count, message);
+									// 방별 멤버 리스트에도 형성해놓아야 함.
+									onRoomMembers.put(room_count, new Vector<String>());
+									// 방 리스트 업데이트
+									
 									break;
 								case 3: // enter the room			[option]
-//									rooms.get(option).add(s_num);
+									// 요청 보낸 사람의 닉네임 불러오기
+									String inSelf =PartyUser.this.uName;
+									// 방 이름으로 onRoomList 의 해당 녀석의 방번호을 찾자.
+									Integer inRNum = (Integer) getKey(onRoomList, message);
+									
+									// onRoomMember의 형성해놓은 vector에 닉네임 추가하자
+									onRoomMembers.get(inRNum).add(inSelf);
+									
+									
 									break;
 								case 4: // exit room
-//									rooms.get(option).remove(s_num);
-//									if (rooms.get(option).size() == 0)	{
-//										rooms.remove(option);
-//										DB.delRoom(option);
-//									}
+//									// 요청 보낸 사람의 닉네임 불러오기
+									String outSelf =PartyUser.this.uName;
+									// 방 이름으로 onRoomList 의 해당 녀석의 방번호을 찾자.
+									Integer outRNum = (Integer) getKey(onRoomList, message);
+									// 그 방의 접속자에서 나가자.
+									onRoomMembers.get(outRNum).remove(outSelf);
+									
+									
 									break;
 								case 5: // message to the room		[option]
 //									Socket temp_socket;
@@ -220,7 +247,16 @@ public class ServerController implements Initializable{
 //									}
 									break;
 								case 6: // logout
-//									delClient(s_num);
+									//userlist에서 빼기
+									// 로그아웃할 유저 찾기
+									String logoutUser = PartyUser.this.uName;
+									// 접속중인 유저리스트를 빼버려야겠군
+									//key 얻자.
+//									getKey(on);s
+									// 접속자들 정보를 담고 있는 Map
+//									Map<Integer, PartyUser> onUsers = new Hashtable<>();
+									
+//									
 									break;
 								case 7: // updateUserList
 									List<String> temps = new ArrayList<>();
@@ -234,18 +270,31 @@ public class ServerController implements Initializable{
 									}
 									String res = sb.toString();
 //									System.out.println(res);
-									send(7,-1,res);
+									// 이미 들어왔던 사람들에게 뿌리기
+									for(int i =0; i<onUsers.size();i++) {
+										onUsers.get(i).send(7,-1,res);
+									}
+									// 나도 받아야지
+//									send(7,-1,res);
+									
 									break;
 								case 8: // updateRoomList
 									if(!onRoomList.isEmpty()) {
 										StringBuffer sb1 = new StringBuffer();
-										for(String s: onRoomList) {
+										// onRoomList의 value값들 구하기
+										for(Map.Entry<Integer, String> entry : onRoomList.entrySet()) {
+											String s = entry.getValue();
 											sb1.append(s);
 											sb1.append(",");
-											
 										}
+										
 										String res1 = sb1.toString();
-										send(8,-1,res1);
+										// 이미 들어왔던 사람들에게 뿌리기
+										for(int i =0; i<onUsers.size();i++) {
+											onUsers.get(i).send(8,-1,res1);
+										}
+//										//나도 받고
+//										send(8,-1,res1);
 									}
 									break;
 								case 9: // del Room
@@ -268,7 +317,7 @@ public class ServerController implements Initializable{
 		public void send(int req, int opt, String data) {
 			data = req+"|"+opt+"|"+data;
 			// 확인용
-//			System.out.println(data);
+			System.out.println("서버가 보냄"+data);
 			try {
 				byte[] bytes = data.getBytes("UTF-8");
 				
@@ -302,6 +351,12 @@ public class ServerController implements Initializable{
 
 	@Override
 	public void initialize(URL location, ResourceBundle resources) {
+		txtDisplay.setEditable(false);
+		txtDisplay.setOnKeyPressed(key->{
+			if(key.getCode().equals(KeyCode.ENTER)) {
+				btnStartStop.fire();
+			}
+		});
 		btnStartStop.setOnAction(event->handleBtnStartStop(event));
 	}
 	
@@ -418,5 +473,14 @@ public class ServerController implements Initializable{
 		txtDisplay.appendText(text+"\n");
 	}
 	
+	// Map에서 value 값으로 key값 찾기
+	public Object getKey(Map<Integer, String> m, Object value) {
+		for(Object o: m.keySet()) {
+			if(m.get(o).equals(value)) {
+				return o;
+			}
+		}
+		return null;
+	}
 	
 }

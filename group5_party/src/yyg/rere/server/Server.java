@@ -2,15 +2,18 @@ package yyg.rere.server;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.StringTokenizer;
-
 
 import yyg.rere.DB.DB;
 
@@ -40,7 +43,34 @@ class Pair {
 	}
 	
 }
-
+/*
+class Pair2 {
+	private int num;
+	private String name;
+	
+	public Pair2(int num) {
+		this.num = num;
+		this.name = "";
+	}
+	public Pair2(int num, String name) {
+		this.num = num;
+		this.name = "";
+	}
+	public int getNum() {
+		return num;
+	}
+	public void setNum(int num) {
+		this.num = num;
+	}
+	public String getName() {
+		return name;
+	}
+	public void setName(String name) {
+		this.name = name;
+	}
+	
+}
+*/
 public class Server {
 
 	private static int r_count = 0;
@@ -54,7 +84,7 @@ public class Server {
 	public static void main(String [] args) {
 		try {
 			serverSocket = new ServerSocket();
-/*////////*/serverSocket.bind(new InetSocketAddress("192.168.1.31", 5001));
+/*////////*/serverSocket.bind(new InetSocketAddress("192.168.1.41", 5001));
 			System.out.println("[Server open]");
 			
 			Thread t = new Thread(() -> {
@@ -88,10 +118,10 @@ public class Server {
 			Socket socket = null;
 			socket = serverSocket.accept();
 			if (socket != null) {
-				int s_num = u_count;	//////////////////////////////////////
-				online.put(u_count++, new Pair(socket));		//////////////////////////
+				int s_num = u_count;
+				online.put(u_count++, new Pair(socket));
 				System.out.println("new client" + s_num + " accepted");
-				send(socket, 0, -1, Integer.toString(s_num));
+				
 				receive(s_num, socket);
 			}
 			else {
@@ -133,10 +163,17 @@ public class Server {
 		
 		online.remove(num);
 	}
-	// s_num = socket number ; 위에 online의 키 값.
+	
 	private static void receive(int s_num, Socket socket) {
 		System.out.println("client" + s_num + " in 'receive' function");
-		Thread t = new Thread(() -> {	// what is this lambda expression about?
+		
+		
+		Thread t = new Thread(() -> {
+			OutputStream os = null;
+			try {os = socket.getOutputStream();} 
+			catch (IOException e2) {System.out.println("conneciton fail"); e2.printStackTrace();}
+			send(socket, 0, -1, Integer.toString(s_num), os);
+			
 			while(true) {
 				try {
 					byte[] bytes = new byte[1000];
@@ -144,12 +181,11 @@ public class Server {
 					
 					int readByte = is.read(bytes);
 					
-					String sender = ((InetSocketAddress)socket.getRemoteSocketAddress()).getHostName();
 					String data = new String(bytes, 0, readByte, "UTF-8");
 					
 					// tokenize data
 					StringTokenizer st = new StringTokenizer(data, "|");
-					System.out.println(data);
+//					System.out.println(data);
 					int request = Integer.parseInt(st.nextToken());
 					int option = Integer.parseInt(st.nextToken());
 					
@@ -160,7 +196,6 @@ public class Server {
 						count++;
 						message += st.nextToken();
 					}
-					
 					switch(request) {	// request|option|message
 						case 0: // join
 							String[] infos = message.split(",");
@@ -174,10 +209,10 @@ public class Server {
 							boolean isOk = DB.login(login[0], login[1]);
 							System.out.println("client" + s_num + " login permission : " + isOk);
 							if(isOk) {
-								send(socket, 1, -1, "1");
+								send(socket, 1, -1, "1", os);
 								online.get(s_num).setNum(DB.getterNum(login[0]));
 							}
-							else	  send(socket, 1, -1, "0");
+							else	  send(socket, 1, -1, "0", os);
 							break;
 						case 2: // make a room and enter
 							int temp = r_count++;
@@ -199,31 +234,102 @@ public class Server {
 							Socket temp_socket;
 							for (int a = 0; a < rooms.get(option).size(); a++) {
 								temp_socket = online.get(rooms.get(option).get(a)).getSocket();
-								send(temp_socket, 2, option, message);		
+								send(temp_socket, 2, option, message, os);		
 							}
 							break;
 						case 6: // logout
 							delClient(s_num);
 							break;
 						case 7: // user
-							send(socket, 7, -1, "");
+							message = "";
+							for (int a : online_num) {
+								message += DB.getterNnI(a);
+								message += ",";
+							}
+							send(socket, 7, -1, message, os);
 							break;
 						case 8: // room
-							send(socket, 8, -1, "");
+							message = "";
+							for (int a : rooms.keySet()) {
+								message += getterRoomName(a);
+								message += ",";
+							}
+							send(socket, 8, -1, message, os);
 							break;	
 						default:
 							break;
 					}
 				} catch (Exception e) {
+					try {
+						os.close();
+					} catch (IOException e1) {
+						System.out.println("fail to getoutputstream.close");
+						e1.printStackTrace();
+					}
 					delClient(s_num);
 					System.out.println("[Connection Fail or Over] : " + socket.getRemoteSocketAddress());
 					break;
 				}
 			}				
 		});
-		t.start();
+		t.start();	//neccessary?
 	}
 	
+	private static void send(Socket socket, int request, int option, String message, OutputStream os) {
+		System.out.println("'send' " + socket + ": " + request + "|" + option + "|" + message);
+		
+		try {
+			String refined = request + "|" + option + "|" + message;
+//			System.out.println(refined);
+			byte[] bytes = refined.getBytes("UTF-8");
+			os.write(bytes);
+			os.flush();
+//			os.close();	this makes error
+		} catch (Exception e) {
+			System.out.println("Error in 'send': " + socket + ", "  + request  + ", " + message + ", ");
+//			e.printStackTrace();
+		}		
+	}
+	
+	public static String getterRoomName(int num) {
+		String driver = "com.mysql.jdbc.Driver";
+		String url = "jdbc:mysql://localhost:3306/myjava?useSSL=false";
+		String username = "myjava";
+		String password = "12345";
+		
+		Connection conn = null;	// 데이터 베이스 연결 정보
+		Statement stmt = null;	// 연결정보를 가지고 질의 전송을 도와주는 객체
+		ResultSet rs = null;	// 질의에 대한 결과값이 있으면 결과값을 담는 객체
+		String sql;
+		
+		try {
+			Class.forName(driver);
+			conn = DriverManager.getConnection(url,username,password);
+			System.out.println("Database 연결 완료 : " + conn.toString());
+			
+			sql = "";
+			stmt = conn.createStatement();
+			
+			sql = "use project;";
+			int result = stmt.executeUpdate(sql);	// 실행 완료된 행의 갯수
+			
+			sql = "select rName from room_list where num = " + num + ";";
+			rs = stmt.executeQuery(sql);			// 결과값
+			if (rs.next())	return rs.getString(1);
+			
+			System.out.println("no matching ID.");
+			
+		} catch (ClassNotFoundException e1) {
+			System.out.println("class error");
+			e1.printStackTrace();
+		} catch (SQLException e1) {
+			System.out.println("sql error");
+			e1.printStackTrace();
+		}
+		
+		return "";
+	}
+/*
 	private static void send(Socket socket, int request, int option, String message) {
 		System.out.println("'send' " + socket + ": " + request + "|" + option + "|" + message);
 		OutputStream os = null;
@@ -269,8 +375,7 @@ public class Server {
 			}
 			System.out.println("Error in 'send'");
 		}
-		
-
-	}
 	
+	}
+*/	
 }

@@ -27,6 +27,7 @@ public class AppMain extends Application {
 			primaryStage.setScene(scene);
 			primaryStage.setTitle("로그인");
 			primaryStage.setResizable(false);
+			primaryStage.setOnCloseRequest(e->controller.stopClient());
 			primaryStage.show();
 		} catch (IOException e) {
 			e.printStackTrace();

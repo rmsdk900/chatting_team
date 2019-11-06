@@ -22,15 +22,13 @@
                   <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
                   <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
                   <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-                  <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
               </rowConstraints>
                <children>
                   <Label text="아이디" />
                   <Label text="패스워드" GridPane.rowIndex="1" />
                   <Label text="패스워드 확인" GridPane.rowIndex="2" />
                   <Label id="pwChkMsg" text="- 패스워드 중복 메시지" GridPane.columnIndex="1" GridPane.rowIndex="3" />
-                  <Label text="이름" GridPane.rowIndex="4" />
-                  <Label text="닉네임" GridPane.rowIndex="5" />
+                  <Label text="닉네임" GridPane.rowIndex="4" />
                   <HBox alignment="CENTER_LEFT" spacing="10.0" GridPane.columnIndex="1">
                      <children>
                         <TextField id="txtNewId" maxWidth="140.0" />
@@ -39,8 +37,7 @@
                   </HBox>
                   <PasswordField id="txtPw" maxWidth="160.0" GridPane.columnIndex="1" GridPane.rowIndex="1" />
                   <PasswordField id="txtPwCheck" maxWidth="160.0" GridPane.columnIndex="1" GridPane.rowIndex="2" />
-                  <TextField id="txtName" maxWidth="140.0" GridPane.columnIndex="1" GridPane.rowIndex="4" />
-                  <TextField id="txtNick" maxWidth="140.0" promptText="없으면 이름" GridPane.columnIndex="1" GridPane.rowIndex="5" />
+                  <TextField id="txtNick" maxWidth="140.0" promptText="없으면 ID" GridPane.columnIndex="1" GridPane.rowIndex="4" />
                </children>
                <padding>
                   <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />

@@ -31,13 +31,14 @@ import javafx.stage.Stage;
 import yyg.rere.Client.PartyUser;
 import yyg.rere.DB.DB;
 import yyg.rere.waiting.WaitController;
-// 로그인 관련 처리하는 녀석이자 socket 관련 처리하는 녀석
+// 로그인 관련 처리하는 녀석이자 socket 관련 처리하는 녀석 main!!
 public class LoginController implements Initializable{
 	// stage 불러오기
 	private Stage primaryStage;
 	
 	// 생성자 ? 
-	public LoginController() {}
+	public LoginController() {
+	}
 	
 	// fxml 변수
 	@FXML private TextField txtId;
@@ -52,8 +53,8 @@ public class LoginController implements Initializable{
 	//통신 관련 변수들
 	private Socket socket;
 	
-	// 유저 정보 담고 있기
-	private PartyUser partyUser;
+	// 회원가입 여부 확인
+	boolean possible;
 	
 	// 로그인 여부 확인
 	boolean isOk;
@@ -104,26 +105,14 @@ public class LoginController implements Initializable{
 			System.out.println(isOk);
 			// 로그인 성공 시 대기실 창 열기
 			if(isOk) {
-				try {
-					FXMLLoader loader = new FXMLLoader(getClass().getResource("../waiting/waitingroom.fxml"));
-//					//fxml파일에 대한 정보를 가져옴
-					Parent root = loader.load();
-					controller = loader.getController();
-					controller.setPrimaryStage(primaryStage);
-					controller.setLoginController(this);
-					
-					Scene scene = new Scene(root);
-					primaryStage.setScene(scene);
-					primaryStage.setTitle(loginId+"님의 대기실");
-					primaryStage.setResizable(false);
-					primaryStage.show();
-					
-					
-					
-
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
+				
+				controller = new WaitController(this, loginId);
+//				//서버에 목록들 업데이트 갱신 요청
+				updateUserList();
+				updateRoomList();
+				// id, pw 칸 비우기
+				txtId.clear();
+				txtPw.clear();
 			// 로그인 실패
 			}else {
 				Alert alert = new Alert(AlertType.WARNING);
@@ -133,8 +122,31 @@ public class LoginController implements Initializable{
 				alert.showAndWait();
 			}
 			
-			
 		});
+		
+//		primaryStage.setOnCloseRequest(e->{
+//			try {
+//				FXMLLoader reloader = new FXMLLoader(getClass().getResource("login.fxml"));
+//				Parent login = reloader.load();
+//				Stage stage = new Stage();
+//				Scene s = new Scene(login);
+//				stage.setScene(s);
+//				stage.show();
+//				
+//			} catch (IOException e1) {
+//				e1.printStackTrace();
+//			}
+//		});
+		// 이 화면이 닫기 요청을 받았을 때
+		// 이건 하면 열리고 꺼짐.
+//		primaryStage.setOnCloseRequest(e->{
+//			send(6,-1,"0");
+//			Scene scene = txtId.getScene();
+//			primaryStage.setScene(scene);
+//			primaryStage.show();
+//		});
+
+		
 		// 회원가입 버튼 눌렀을 때;
 		btnSignup.setOnAction((event)->{
 			System.out.println("회원가입");
@@ -153,7 +165,6 @@ public class LoginController implements Initializable{
 				PasswordField txtNewPw = (PasswordField) login.lookup("#txtPw");
 				PasswordField txtPwChk = (PasswordField) login.lookup("#txtPwCheck");
 				Label pwChkMsg = (Label) login.lookup("#pwChkMsg");
-				TextField txtName = (TextField) login.lookup("#txtName");
 				TextField txtNick = (TextField) login.lookup("#txtNick");
 				Button btnReg = (Button) login.lookup("#btnReg");
 				Button btnCancel = (Button) login.lookup("#btnCancel");
@@ -163,7 +174,10 @@ public class LoginController implements Initializable{
 				confirmId.setOnAction(e->{
 					System.out.println("중복확인");
 					String newId = txtNewId.getText();
-					if (DB.existInTable(newId, "member_list")) {
+					// 서버로 신호 보내자. 
+					send(0,1,newId);
+					
+					if (possible) {
 						Alert alert = new Alert(AlertType.WARNING);
 						alert.setTitle("Warning");
 						alert.setHeaderText("Same ID exist");
@@ -223,8 +237,14 @@ public class LoginController implements Initializable{
 					String newId = txtNewId.getText();
 					String newPw = txtNewPw.getText();
 					String newPwC = txtPwChk.getText();
-					String newName = txtName.getText();
 					String newNick = txtNick.getText();
+					
+					
+					
+					// 닉이 없을 경우 이름 입력하게
+					if(newNick.equals("")) {
+						newNick = newId;
+					}
 					
 					if (!newPw.equals(newPwC)) {
 						Alert alert = new Alert(AlertType.WARNING);
@@ -236,7 +256,7 @@ public class LoginController implements Initializable{
 						return;
 					}
 					// 서버 DB에 저장하도록 보내주기
-					String newUser = newId+","+newPw+","+newName;
+					String newUser = newId+","+newPw+","+newNick;
 					send(0, -1, newUser);
 			
 					
@@ -261,14 +281,22 @@ public class LoginController implements Initializable{
 			Platform.exit();
 		});
 	}
+	// 로그아웃할 때(waitingroom 창을 닫았을 때)
+	
+	
+	
+	
+	
 	// 서버랑 연결 작업하기
 	public void startClient() {
 		
 		System.out.println("서버에 연결 시도");
 		try {
 			InetAddress ip = InetAddress.getByName("192.168.1.31");
+//			InetAddress hm = InetAddress.getByName("192.168.1.41");
 			// 서버에 연결 요청 보내기
 			socket = new Socket(ip, 5001);
+//			socket = new Socket(hm, 5001);
 			System.out.println("[ 연결 완료 : "+socket.getRemoteSocketAddress()+"]");
 			// 계속 받기
 			receive();
@@ -282,6 +310,7 @@ public class LoginController implements Initializable{
 	
 	public void stopClient() {
 		System.out.println("연결 종료");
+		logout();
 		try {
 			if(socket != null && !socket.isClosed()) {
 				socket.close();
@@ -291,9 +320,19 @@ public class LoginController implements Initializable{
 		}
 	}
 	
+	public void logout() {
+		System.out.println("로그아웃");
+		send(6,-1,serverKey+"");
+		
+	}
+
+
+
+
+
 	public void send(int req, int opt, String data) {
 		data = req+"|"+opt+"|"+data;
-		System.out.println(data);
+		System.out.println("클라가 보냄"+data);
 		try {
 			byte[] bytes = data.getBytes("UTF-8");
 			OutputStream os = socket.getOutputStream();
@@ -325,10 +364,22 @@ public class LoginController implements Initializable{
 	public void receive() {
 		new Thread(()->{
 			// 계속
+			////////
+			int c=0;
+			////////
 			while (true) {
 				try {
 					byte[] bytes = new byte[512];
 					InputStream is = socket.getInputStream();
+					/////////////////////////////////////
+					c++;
+					if(c==3) {
+						int rB = is.read(bytes);
+						String d = new String(bytes, 0, rB, "UTF-8");
+						c++;
+					}
+					
+					/////////////////////////////////
 					int readByte = is.read(bytes);
 					// 안넘어오면 오류 발생
 					if(readByte == -1) throw new IOException();
@@ -350,7 +401,13 @@ public class LoginController implements Initializable{
 					// req에 따라서 분류 처리
 						switch (request) {
 						case 0: //socket 키값 받기.
-							serverKey = Integer.parseInt(message);
+							if(option==1) {
+								possible=Boolean.parseBoolean(message);
+								System.out.println(possible);
+							} else if(option==-1){
+								serverKey = Integer.parseInt(message);
+							}
+							
 							break;
 						case 1: // login
 							if(message.equals("1")) {
@@ -370,26 +427,21 @@ public class LoginController implements Initializable{
 								namesList.put(userCount, s);
 								userCount++;
 							}
-							
-							
+							// 이게 실행이 안됨.
 							controller.updateUsers(namesList);
-							
-							
 							break;
 						case 8: // roomList
 							// 마지막 , 지우기
 							message = message.substring(0, message.length()-1);
 							// 방 이름 array
 							String[] rNames=message.split(",");
+							
+							// 이게 안되는 거 같은데
 							controller.updateRooms(rNames);
 							break;
 						default:
 							break;
 					}
-					
-					
-					
-					System.out.println(data);
 				} catch (UnsupportedEncodingException e) {
 					e.printStackTrace();
 					break;
@@ -403,7 +455,11 @@ public class LoginController implements Initializable{
 	//서버 데이터베이스에 넣는 것은 됨.
 	public void createRoom(String title) {
 		send(2, -1, title);
-		
+		updateRoomList();
+	}
+	
+	public void enterRoom(String title) {
+		send(3,-1,title);
 	}
 	public void delRoom(String title) {
 		
@@ -429,6 +485,18 @@ public class LoginController implements Initializable{
 	
 	public void setPrimaryStage(Stage primaryStage) {
 		this.primaryStage = primaryStage;
+		primaryStage.setOnCloseRequest(e->{
+			try {
+				FXMLLoader reloader = new FXMLLoader(getClass().getResource("login.fxml"));
+				Parent login = reloader.load();
+				Scene s = new Scene(login);
+				primaryStage.setScene(s);
+				primaryStage.show();
+				
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
+		});
 	}
 	
 
