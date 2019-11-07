@@ -323,11 +323,9 @@ public class LoginController implements Initializable{
 		
 		System.out.println("서버에 연결 시도");
 		try {
-			InetAddress ip = InetAddress.getByName("192.168.1.22");
-//			InetAddress hm = InetAddress.getByName("192.168.1.41");
+			InetAddress ip = InetAddress.getByName("192.168.1.31");
 			// 서버에 연결 요청 보내기
 			socket = new Socket(ip, 5001);
-//			socket = new Socket(hm, 5001);
 			System.out.println("[ 연결 완료 : "+socket.getRemoteSocketAddress()+"]");
 			// 계속 받기
 			receive();
