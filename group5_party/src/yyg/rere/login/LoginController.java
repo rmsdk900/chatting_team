@@ -9,9 +9,10 @@ import java.net.Socket;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 import java.util.ResourceBundle;
 import java.util.StringTokenizer;
+import java.util.Vector;
 
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -28,8 +29,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-import yyg.rere.Client.PartyUser;
-import yyg.rere.DB.DB;
+import yyg.rere.room.RoomController;
 import yyg.rere.waiting.WaitController;
 // 로그인 관련 처리하는 녀석이자 socket 관련 처리하는 녀석 main!!
 public class LoginController implements Initializable{
@@ -58,6 +58,9 @@ public class LoginController implements Initializable{
 	
 	// 로그인 여부 확인
 	boolean isOk;
+	
+	// 현재 소켓이 들어가 있는 방 목록들
+	List<Integer> rNumbers = new Vector<>();
 	
 	// 서버에 있는 소켓 리스트에서 클라이언트의 소켓이 들어가있는 key값.
 	private int serverKey = 0;
@@ -107,9 +110,15 @@ public class LoginController implements Initializable{
 			if(isOk) {
 				
 				controller = new WaitController(this, loginId);
-//				//서버에 목록들 업데이트 갱신 요청
-				updateUserList();
-				updateRoomList();
+				try {
+					Thread.sleep(1000);
+					//서버에 목록들 업데이트 갱신 요청
+					updateUserList();
+					updateRoomList();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+				
 				// id, pw 칸 비우기
 				txtId.clear();
 				txtPw.clear();
@@ -124,27 +133,6 @@ public class LoginController implements Initializable{
 			
 		});
 		
-//		primaryStage.setOnCloseRequest(e->{
-//			try {
-//				FXMLLoader reloader = new FXMLLoader(getClass().getResource("login.fxml"));
-//				Parent login = reloader.load();
-//				Stage stage = new Stage();
-//				Scene s = new Scene(login);
-//				stage.setScene(s);
-//				stage.show();
-//				
-//			} catch (IOException e1) {
-//				e1.printStackTrace();
-//			}
-//		});
-		// 이 화면이 닫기 요청을 받았을 때
-		// 이건 하면 열리고 꺼짐.
-//		primaryStage.setOnCloseRequest(e->{
-//			send(6,-1,"0");
-//			Scene scene = txtId.getScene();
-//			primaryStage.setScene(scene);
-//			primaryStage.show();
-//		});
 
 		
 		// 회원가입 버튼 눌렀을 때;
@@ -365,19 +353,19 @@ public class LoginController implements Initializable{
 		new Thread(()->{
 			// 계속
 			////////
-			int c=0;
+//			int c=0;
 			////////
 			while (true) {
 				try {
 					byte[] bytes = new byte[512];
 					InputStream is = socket.getInputStream();
 					/////////////////////////////////////
-					c++;
-					if(c==3) {
-						int rB = is.read(bytes);
-						String d = new String(bytes, 0, rB, "UTF-8");
-						c++;
-					}
+//					c++;
+//					if(c==3) {
+//						int rB = is.read(bytes);
+//						String d = new String(bytes, 0, rB, "UTF-8");
+//						c++;
+//					}
 					
 					/////////////////////////////////
 					int readByte = is.read(bytes);
@@ -416,6 +404,13 @@ public class LoginController implements Initializable{
 								isOk = false;
 							}
 							break;
+						case 3: //enterRoom
+							// 자기가 들어간 방의 넘버 넣기.
+							rNumbers.add(option);
+							// 방제랑 같이 
+							RoomController partyRoom = new RoomController(this, option, message);
+//							controller.enterRoom(message);
+						
 						case 7: // userList
 							// 마지막 , 지우기
 							message = message.substring(0, message.length()-1);
@@ -456,9 +451,12 @@ public class LoginController implements Initializable{
 	public void createRoom(String title) {
 		send(2, -1, title);
 		updateRoomList();
+		
+		
 	}
 	
 	public void enterRoom(String title) {
+		System.out.println(title);
 		send(3,-1,title);
 	}
 	public void delRoom(String title) {
@@ -468,17 +466,24 @@ public class LoginController implements Initializable{
 	
 	// 유저리스트
 	public void updateUserList(){
-		//유저리스트 요청 보내기
-		send(7,-1,"0");
-		System.out.println("유저 목록 업뎃");
-		
+		try {
+			Thread.sleep(500);
+			//유저리스트 요청 보내기
+			send(7,-1,"0");
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 		
 	}
 	// 방 목록
 	public void updateRoomList(){
-		// 방 목록 요청 보내기
-		send(8,-1,"0");
-		System.out.println("방 목록 업뎃");
+		try {
+			Thread.sleep(500);
+			// 방 목록 요청 보내기
+			send(8,-1,"0");
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 		
 	}
 	

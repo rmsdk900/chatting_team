@@ -1,35 +1,34 @@
 package yyg.rere.room;
 
 import java.io.IOException;
-import java.net.URL;
-import java.util.ResourceBundle;
 
-import javafx.fxml.FXML;
+import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
-import javafx.fxml.Initializable;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
-import javafx.scene.input.KeyCode;
 import javafx.stage.Stage;
+import yyg.rere.login.LoginController;
 import yyg.rere.waiting.WaitController;
 
 
 public class RoomController {
-//	@FXML private TextArea txtArea;
-//	@FXML private TextField txtInput;
-//	@FXML private Button btnSend;
 	
 	WaitController waitController;
+	LoginController loginController;
 	
 	TextArea txtArea;
 	TextField txtInput;
 	Button btnSend;
 	
-	public RoomController(WaitController waitController, String rName) {
-		this.waitController = waitController;
+	// 방 번호
+	int rNumber;
+	
+	public RoomController(LoginController loginController, int rNumber, String rName) {
+		this.loginController = loginController;
+		this.rNumber = rNumber;
 		enterRoom(rName);
 	}
 
@@ -44,12 +43,19 @@ public class RoomController {
 			
 			
 			
-			Stage stage = new Stage();
-			Scene scene = new Scene(room);
-			stage.setTitle(rName);
-			stage.setScene(scene);
-			stage.setResizable(false);
-			stage.show();
+			Platform.runLater(()->{
+				Stage stage = new Stage();
+				Scene scene = new Scene(room);
+				stage.setTitle(rName);
+				stage.setScene(scene);
+				stage.setResizable(false);
+				stage.show();
+			});
+			txtArea.setEditable(false);
+			btnSend.setOnMouseClicked(e->{
+				String msg = txtInput.getText();
+				sendMessage(msg);
+			});
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -63,9 +69,9 @@ public class RoomController {
 	}
 
 
-	public void sendMessage() {
-		System.out.println("보내기 버튼 클릭");
-		
+	public void sendMessage(String msg) {
+		System.out.println("보낼 메시지 : "+msg);
+		loginController.send(5, rNumber, msg);
 	}
 
 	

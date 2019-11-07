@@ -158,7 +158,7 @@ public class ServerController implements Initializable{
 							int readByte = is.read(bytes);
 //						if(readByte == -1)throw new IOException();
 							String data = new String(bytes, 0, readByte, "UTF-8");
-							
+							Platform.runLater(()->displayText(data)); 
 							// tokenize data
 							StringTokenizer st = new StringTokenizer(data, "|");
 							int request = Integer.parseInt(st.nextToken());
@@ -226,8 +226,8 @@ public class ServerController implements Initializable{
 									
 									// onRoomMember의 형성해놓은 vector에 닉네임 추가하자
 									onRoomMembers.get(inRNum).add(inSelf);
-									
-									
+									// 자기가 들어와있는 방 번호는 옵션으로
+									send(3,inRNum,message);
 									break;
 								case 4: // exit room
 //									// 요청 보낸 사람의 닉네임 불러오기
@@ -240,11 +240,20 @@ public class ServerController implements Initializable{
 									
 									break;
 								case 5: // message to the room		[option]
-//									Socket temp_socket;
-//									for (int a = 0; a < rooms.get(option).size(); a++) {
-//										temp_socket = online.get(rooms.get(option).get(a)).getSocket();
-//										send(temp_socket, 2, option, message);		
-//									}
+									// 방번호로 거기 있는 사람들 찾기
+									Vector<String> group=onRoomMembers.get(option);
+									// 이름으로 그 이름을 가진 소켓에 메시지 전하기.
+									
+									for(int i =0; i<onUsers.size();i++) {
+										for(int j=0;j<group.size();j++) {
+											// onUsers에서
+											if(onUsers.get(i).getuName().equals(group.get(j))) {
+												onUsers.get(i).send(5,option, message);
+											}
+										}
+										
+										
+									}
 									break;
 								case 6: // logout
 									//userlist에서 빼기
@@ -274,8 +283,7 @@ public class ServerController implements Initializable{
 									for(int i =0; i<onUsers.size();i++) {
 										onUsers.get(i).send(7,-1,res);
 									}
-									// 나도 받아야지
-//									send(7,-1,res);
+									
 									
 									break;
 								case 8: // updateRoomList
@@ -293,8 +301,7 @@ public class ServerController implements Initializable{
 										for(int i =0; i<onUsers.size();i++) {
 											onUsers.get(i).send(8,-1,res1);
 										}
-//										//나도 받고
-//										send(8,-1,res1);
+//										
 									}
 									break;
 								case 9: // del Room
