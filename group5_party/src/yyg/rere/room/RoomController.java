@@ -9,6 +9,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.input.KeyCode;
 import javafx.stage.Stage;
 import yyg.rere.login.LoginController;
 import yyg.rere.waiting.WaitController;
@@ -26,10 +27,15 @@ public class RoomController {
 	// 방 번호
 	int rNumber;
 	
+	public int getrNumber() {
+		return rNumber;
+	}
+
 	public RoomController(LoginController loginController, int rNumber, String rName) {
 		this.loginController = loginController;
 		this.rNumber = rNumber;
 		enterRoom(rName);
+		loginController.send(5, rNumber, loginController.getMyNick()+"님이 입장하셨습니다.");
 	}
 
 	private void enterRoom(String rName) {
@@ -49,13 +55,31 @@ public class RoomController {
 				stage.setTitle(rName);
 				stage.setScene(scene);
 				stage.setResizable(false);
+				stage.setOnCloseRequest(e->{
+					loginController.exitRoom(rNumber);
+				});
 				stage.show();
 			});
 			txtArea.setEditable(false);
-			btnSend.setOnMouseClicked(e->{
-				String msg = txtInput.getText();
-				sendMessage(msg);
+			txtArea.setOnKeyReleased(key->{
+				if(key.getCode().equals(KeyCode.ENTER)) {
+					txtInput.requestFocus();
+				}
 			});
+			txtInput.setOnKeyPressed(key->{
+				if(key.getCode().equals(KeyCode.ENTER)) {
+					btnSend.fire();
+				}
+			});
+			btnSend.setOnMouseClicked(e->{
+				String sender = loginController.getMyNick();
+				String msg = txtInput.getText();
+				sendMessage(sender, msg);
+			});
+			
+			
+			
+			
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -63,17 +87,23 @@ public class RoomController {
 		
 		
 	}
+	
+	
 
 	public void setWaitController(WaitController waitController) {
 		this.waitController = waitController;
 	}
 
 
-	public void sendMessage(String msg) {
+	public void sendMessage(String sender, String msg) {
 		System.out.println("보낼 메시지 : "+msg);
-		loginController.send(5, rNumber, msg);
+		loginController.send(5, rNumber, sender+": "+msg);
 	}
+	
 
+	public void displayMessage(String message) {
+		Platform.runLater(()->txtArea.appendText(message+"\n"));
+	}
 	
 	
 }

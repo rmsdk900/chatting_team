@@ -193,9 +193,10 @@ public class ServerController implements Initializable{
 										int key = Integer.parseInt(login[2]);
 										// 로그인한 유저의 정보를 담는 맵에 넣기
 										onUsers.put(connUserCount, new PartyUser(connSockets.get(key)));
+										onUsers.get(connUserCount).setuId(login[0]);
 										onUsers.get(connUserCount).setuName(DB.getterNn(login[0]));
 										// onUsers에 접속할 수 있는 key값 보내자. 
-										send(1, -1, "1");
+										send(1, -1, "1,"+DB.getterNn(login[0]));
 										connUserCount++;
 										
 										
@@ -204,24 +205,20 @@ public class ServerController implements Initializable{
 										send(1, -1, "0");
 									}
 									break;
-								case 2: // make a room and enter
+								case 2: // make a room
 									room_count++;
 									// message = title
 									System.out.println(message);
-									//서버 데이터베이스에 방 이름이랑 번호 추가
-									// 방 리스트가 필요 있나?
-//									DB.setRoom(room_count, message);
 									// 방 리스트에 넣기
 									onRoomList.put(room_count, message);
 									// 방별 멤버 리스트에도 형성해놓아야 함.
 									onRoomMembers.put(room_count, new Vector<String>());
 									// 방 리스트 업데이트
-									
 									break;
 								case 3: // enter the room			[option]
 									// 요청 보낸 사람의 닉네임 불러오기
 									String inSelf =PartyUser.this.uName;
-									// 방 이름으로 onRoomList 의 해당 녀석의 방번호을 찾자.
+									// 방 이름으로 onRoomList 의 해당 방의 번호을 찾자.
 									Integer inRNum = (Integer) getKey(onRoomList, message);
 									
 									// onRoomMember의 형성해놓은 vector에 닉네임 추가하자
@@ -230,20 +227,26 @@ public class ServerController implements Initializable{
 									send(3,inRNum,message);
 									break;
 								case 4: // exit room
-//									// 요청 보낸 사람의 닉네임 불러오기
-									String outSelf =PartyUser.this.uName;
-									// 방 이름으로 onRoomList 의 해당 녀석의 방번호을 찾자.
-									Integer outRNum = (Integer) getKey(onRoomList, message);
-									// 그 방의 접속자에서 나가자.
-									onRoomMembers.get(outRNum).remove(outSelf);
-									
-									
+//									// 자기 닉네임 가져오기
+									String exitNick = PartyUser.this.getuName();
+									// 방번호로 나갈 방 찾아서 이름 빼기
+									onRoomMembers.get(option).remove(exitNick);
+									// 나머지 사람들을 가져와서
+									Vector<String> users = onRoomMembers.get(option);
+									// 위의 유저들 소켓에만 신호를 보내자.
+									for(int i=0;i<onUsers.size();i++) {
+										for(int j=0;j<users.size();j++) {
+											if(onUsers.get(i).getuName().equals(users.get(j))) {
+												send(5,option, exitNick+" 님이 나가셨습니다.");
+											}
+										}
+									}
 									break;
 								case 5: // message to the room		[option]
 									// 방번호로 거기 있는 사람들 찾기
 									Vector<String> group=onRoomMembers.get(option);
+									// 보낸 사람이랑 msg랑 나누기
 									// 이름으로 그 이름을 가진 소켓에 메시지 전하기.
-									
 									for(int i =0; i<onUsers.size();i++) {
 										for(int j=0;j<group.size();j++) {
 											// onUsers에서
@@ -251,8 +254,6 @@ public class ServerController implements Initializable{
 												onUsers.get(i).send(5,option, message);
 											}
 										}
-										
-										
 									}
 									break;
 								case 6: // logout
@@ -304,7 +305,9 @@ public class ServerController implements Initializable{
 //										
 									}
 									break;
-								case 9: // del Room
+								case 9: 
+									
+									
 									break;
 								default: // 다른 거 입력했을 때.
 									break;

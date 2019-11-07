@@ -9,10 +9,12 @@ import java.net.Socket;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.HashMap;
-import java.util.List;
+import java.util.Hashtable;
+
+import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.StringTokenizer;
-import java.util.Vector;
+
 
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -59,8 +61,27 @@ public class LoginController implements Initializable{
 	// 로그인 여부 확인
 	boolean isOk;
 	
-	// 현재 소켓이 들어가 있는 방 목록들
-	List<Integer> rNumbers = new Vector<>();
+	// 접속한 내 loginId
+	String loginId;
+	// 접속한 내 닉네임
+	String myNick;
+	
+	
+	
+	//로그인한 녀석의 닉네임 불러오기.
+	// 로그인한 녀석의 아이디 불러오기
+	public String getLoginId() {
+		return loginId;
+	}
+	
+	
+
+	public String getMyNick() {
+		return myNick;
+	}
+
+	//자기가 들어가 있는 방들 정보
+	Map<Integer, RoomController> onRooms = new Hashtable<>();
 	
 	// 서버에 있는 소켓 리스트에서 클라이언트의 소켓이 들어가있는 key값.
 	private int serverKey = 0;
@@ -91,7 +112,7 @@ public class LoginController implements Initializable{
 		btnLogin.setOnAction((event)->{
 			System.out.println("로그인");
 			// 등록할 로그인 정보 콘솔에 출력
-			String loginId = txtId.getText();
+			loginId = txtId.getText();
 			String loginPw = txtPw.getText();
 			// 로그인 확인
 			// data = "id,pw,serverKey";
@@ -398,19 +419,22 @@ public class LoginController implements Initializable{
 							
 							break;
 						case 1: // login
-							if(message.equals("1")) {
-								isOk = true;
-							}else {
+							if(message.equals("0")) {
 								isOk = false;
+							}else {
+								isOk = true;
+								String[] findNick=message.split(",");
+								myNick = findNick[1];
 							}
 							break;
 						case 3: //enterRoom
-							// 자기가 들어간 방의 넘버 넣기.
-							rNumbers.add(option);
-							// 방제랑 같이 
-							RoomController partyRoom = new RoomController(this, option, message);
-//							controller.enterRoom(message);
-						
+							// 자기가 들어간 방의 정보를 넣기
+							onRooms.put(option, new RoomController(this, option, message));
+							break;
+						case 5: // msg
+							// 받은 메시지를 그 방번호에 해당하는 방에만 뿌려야 함. 
+							onRooms.get(option).displayMessage(message);
+							break;
 						case 7: // userList
 							// 마지막 , 지우기
 							message = message.substring(0, message.length()-1);
@@ -458,7 +482,17 @@ public class LoginController implements Initializable{
 	public void enterRoom(String title) {
 		System.out.println(title);
 		send(3,-1,title);
+		// 방 입장 메시지 보내기
 	}
+	
+	// 나만 방을 나갈 때
+		public void exitRoom(int rNumber) {
+			// 방 나감 요청
+			send(4,rNumber, loginId);
+			
+			
+		}
+	
 	public void delRoom(String title) {
 		
 	}
@@ -490,21 +524,8 @@ public class LoginController implements Initializable{
 	
 	public void setPrimaryStage(Stage primaryStage) {
 		this.primaryStage = primaryStage;
-		primaryStage.setOnCloseRequest(e->{
-			try {
-				FXMLLoader reloader = new FXMLLoader(getClass().getResource("login.fxml"));
-				Parent login = reloader.load();
-				Scene s = new Scene(login);
-				primaryStage.setScene(s);
-				primaryStage.show();
 				
-			} catch (IOException e1) {
-				e1.printStackTrace();
-			}
-		});
+			
 	}
-	
 
-	
-	
 }
