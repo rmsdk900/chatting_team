@@ -198,96 +198,124 @@ public class ServerController implements Initializable{
 										// onUsers에 접속할 수 있는 key값 보내자. 
 										send(1, -1, "1,"+DB.getterNn(login[0]));
 										connUserCount++;
-										
-										
 									// 로그인 실패할 경우
 									}else {
 										send(1, -1, "0");
 									}
 									break;
 								case 2: // make a room
-									room_count++;
-									// message = title
-									System.out.println(message);
-									// 방 리스트에 넣기
-									onRoomList.put(room_count, message);
-									// 방별 멤버 리스트에도 형성해놓아야 함.
-									onRoomMembers.put(room_count, new Vector<String>());
-									// 방 리스트 업데이트
+//									// 중복확인
+//									if(option==1) {
+//										System.out.println("방제 중복 확인");
+//										// 가져온 방제랑 비교.
+//										if(!onRoomList.isEmpty()) {
+//											for(Map.Entry<Integer, String> entry : onRoomList.entrySet()) {
+//												System.out.println("야 도냐?"+entry.getValue());
+//												// 같은게 있을 경우!
+//												if(entry.getValue().equals(message)){
+//													send(2,1,"false");
+//													break;
+//												}
+//												
+//											}
+//										}
+//										// 중복되지 않았을 경우
+//										send(2,1,"true");
+										
+									// 방만들어질 때	
+//									}
+//									if(option==-1) {
+										System.out.println("방 만들기");
+										room_count++;
+										// message = title
+										System.out.println(message);
+										// 방 리스트에 넣기
+										onRoomList.put(room_count, message);
+										// 방별 멤버 리스트에도 형성해놓아야 함.
+										onRoomMembers.put(room_count, new Vector<String>());
+//									}
+									
 									break;
 								case 3: // enter the room			[option]
-									// 요청 보낸 사람의 닉네임 불러오기
-									String inSelf =PartyUser.this.uName;
+									// 메시지 2차 파싱
+									String[] ss = message.split(",");
+									// ss[0] = title, ss[1] = nickName
 									// 방 이름으로 onRoomList 의 해당 방의 번호을 찾자.
-									Integer inRNum = (Integer) getKey(onRoomList, message);
+									Integer inRNum = (Integer) getKey(onRoomList, ss[0]);
 									
 									// onRoomMember의 형성해놓은 vector에 닉네임 추가하자
-									onRoomMembers.get(inRNum).add(inSelf);
+									onRoomMembers.get(inRNum).add(ss[1]);
 									// 자기가 들어와있는 방 번호는 옵션으로
-									send(3,inRNum,message);
+									send(3,inRNum,ss[0]);
 									break;
 								case 4: // exit room
-//									// 자기 닉네임 가져오기
-									String exitNick = PartyUser.this.getuName();
 									// 방번호로 나갈 방 찾아서 이름 빼기
-									onRoomMembers.get(option).remove(exitNick);
-									// 나머지 사람들을 가져와서
-									Vector<String> users = onRoomMembers.get(option);
-									// 위의 유저들 소켓에만 신호를 보내자.
-									for(int i=0;i<onUsers.size();i++) {
-										for(int j=0;j<users.size();j++) {
-											if(onUsers.get(i).getuName().equals(users.get(j))) {
-												send(5,option, exitNick+" 님이 나가셨습니다.");
+									onRoomMembers.get(option).remove(message);
+									
+									if(!onRoomMembers.get(option).isEmpty()) {
+										// 나머지 사람들을 가져와서
+										Vector<String> users = onRoomMembers.get(option);
+										// 위의 유저들 소켓에만 신호를 보내자.
+										for(int i=0;i<users.size();i++) {
+											for(Map.Entry<Integer, PartyUser> entry : onUsers.entrySet()) {
+												if(entry.getValue().getuName().equals(users.get(i))) {
+													entry.getValue().send(5,option, message+" 님이 나가셨습니다.");
+												}
 											}
 										}
+									// 방에 남은 인원이 없다 = 폭파
+									}else {
+										onRoomList.remove(option);
 									}
+									send(4,option,"0");
+									
 									break;
 								case 5: // message to the room		[option]
 									// 방번호로 거기 있는 사람들 찾기
 									Vector<String> group=onRoomMembers.get(option);
-									// 보낸 사람이랑 msg랑 나누기
-									// 이름으로 그 이름을 가진 소켓에 메시지 전하기.
-									for(int i =0; i<onUsers.size();i++) {
-										for(int j=0;j<group.size();j++) {
-											// onUsers에서
-											if(onUsers.get(i).getuName().equals(group.get(j))) {
-												onUsers.get(i).send(5,option, message);
+									for(int i=0;i<group.size();i++) {
+										for(Map.Entry<Integer, PartyUser> entry : onUsers.entrySet()) {
+											if(entry.getValue().getuName().equals(group.get(i))) {
+												entry.getValue().send(5,option, message);
 											}
 										}
 									}
 									break;
 								case 6: // logout
-									//userlist에서 빼기
-									// 로그아웃할 유저 찾기
-									String logoutUser = PartyUser.this.uName;
-									// 접속중인 유저리스트를 빼버려야겠군
-									//key 얻자.
-//									getKey(on);s
-									// 접속자들 정보를 담고 있는 Map
-//									Map<Integer, PartyUser> onUsers = new Hashtable<>();
+									for(Map.Entry<Integer, PartyUser> entry : onUsers.entrySet()) {
+										if(entry.getValue().getuName().equals(message)) {
+											onUsers.remove(entry.getKey());
+											break;
+										}
+									}
 									
-//									
+									
+									// @TODO CHECK
+									System.out.println("CASE 6 : "+onUsers.size());
+									
+									// 서버의 로그아웃 했다는 신호
+									send(6,-1,"1");
+									// 다른 사람한테도 이 사람이 나갔다는 것을 알려주자.
 									break;
 								case 7: // updateUserList
-									List<String> temps = new ArrayList<>();
-									for(int i=0;i<onUsers.size();i++) {
-										temps.add(onUsers.get(i).getuName());
-									}
+									System.out.println("7번 받았니? : "+data);
 									StringBuffer sb = new StringBuffer();
-									for(String s : temps) {
+									for(Map.Entry<Integer, PartyUser> entry : onUsers.entrySet()) {
+										String s = entry.getValue().getuName();
 										sb.append(s);
 										sb.append(",");
 									}
+//									
 									String res = sb.toString();
-//									System.out.println(res);
+									System.out.println();
 									// 이미 들어왔던 사람들에게 뿌리기
-									for(int i =0; i<onUsers.size();i++) {
-										onUsers.get(i).send(7,-1,res);
+									System.out.println("onUsers 사이즈 : "+onUsers.size());
+									for(Map.Entry<Integer, PartyUser> entry : onUsers.entrySet()) {
+										entry.getValue().send(7,-1,res);
 									}
-									
-									
 									break;
 								case 8: // updateRoomList
+									// @TODO 
 									if(!onRoomList.isEmpty()) {
 										StringBuffer sb1 = new StringBuffer();
 										// onRoomList의 value값들 구하기
@@ -299,21 +327,30 @@ public class ServerController implements Initializable{
 										
 										String res1 = sb1.toString();
 										// 이미 들어왔던 사람들에게 뿌리기
-										for(int i =0; i<onUsers.size();i++) {
-											onUsers.get(i).send(8,-1,res1);
+										for(Map.Entry<Integer, PartyUser> entry : onUsers.entrySet()) {
+											entry.getValue().send(8,-1,res1);
 										}
 //										
+									}else {
+										// 방 아이콘들을 클리어하라는 명령을 보내자.
+										for(Map.Entry<Integer, PartyUser> entry : onUsers.entrySet()) {
+											entry.getValue().send(8,-1,"clear");
+										}
 									}
 									break;
-								case 9: 
+								case 9: // 방제 중복 확인
 									
+								default: // 다른 거 입력했을 때. 유효하지 않은 메시지 종류
 									
-									break;
-								default: // 다른 거 입력했을 때.
 									break;
 							}
 						} catch (Exception e) {
-							e.printStackTrace();
+							System.out.println("[클라이언트 통신 오류 : "+client.getRemoteSocketAddress()+"]");
+							try {
+								client.close();
+							} catch (IOException e1) {
+								e1.printStackTrace();
+							}							
 							break;
 						}
 					}
@@ -451,16 +488,11 @@ public class ServerController implements Initializable{
 
 	public void stopServer() {
 		try {
-//			// 안정적으로 인덱스 안꼬이고 처리하기 위해 이걸 사용
-//			collection 다 빼야함. 
-//			Iterator<PartyUser> iterator = .iterator();
-//			while(iterator.hasNext()) {
-//				Client client = iterator.next();
-//				if(client.socket !=null&& !client.socket.isClosed()) {
-//					client.socket.close();
-//					iterator.remove();
-//				}
-//			}
+			// 저장되어있는 정보 다 날리기
+			connSockets.clear();
+			onUsers.clear();
+			onRoomList.clear();
+			onRoomMembers.clear();
 			
 			if(server !=null && !server.isClosed()) {
 				server.close();

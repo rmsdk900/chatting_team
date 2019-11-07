@@ -9,7 +9,7 @@ import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXMLLoader;
-
+import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
@@ -37,11 +37,17 @@ public class WaitController {
 	// flowpane 때문에 불러와야 함.
 	ScrollPane roomContainer;
 	FlowPane roomFlowPane;
+	
 	// RoomIcon 관련
 	RoomIcon roomIcon;
 	AnchorPane roomPane;
 	Label lblRoomName;
 	
+	// 이름없음 방 count
+	int cnt = 0;
+	
+	// 중복 확인 boolean값
+//	boolean canRoom;
 	
 	
 	
@@ -74,8 +80,14 @@ public class WaitController {
 			stage.setScene(scene);
 			stage.setTitle(id+"님의 대기실");
 			stage.setResizable(false);
+			stage.setOnCloseRequest(e->{
+				// 서버에 로그아웃 요청 보내기
+				loginController.send(6, -1, loginController.getMyNick());
+				// 나말고 다른 사람한테만 리스트 요청 보내기
+				loginController.send(7,1,"0");
+			});
 			stage.show();
-//			primaryStage.hide();
+		//	primaryStage.hide();
 			
 			
 			
@@ -98,42 +110,39 @@ public class WaitController {
 		btnCreateRoom.setOnAction(event->{
 			String roomTitle = roomName.getText();
 			if(roomTitle.equals("")) {
-				roomTitle = "이름없음";
+				roomTitle = "이름없음"+cnt;
+				cnt++;
 			}
-			// loginController의 메소드 실행하기
-			loginController.createRoom(roomTitle);
-			// 방에 들어가기
-						
-			loginController.enterRoom(roomTitle);
-		});
-		
+			// 방제 중복 확인 요청
+//			loginController.send(2,1,roomTitle);
+//			try {
+//				Thread.sleep(500);
+//				canRoom = Boolean.parseBoolean(loginController.getCanRoom());
+//			} catch (InterruptedException e) {
+//				e.printStackTrace();
+//			}			
+//			System.out.println("불린 바뀌었니?"+canRoom);
+//			if(canRoom) {
+//				System.out.println("현재 방제는?"+roomTitle);
+				// loginController의 메소드 실행하기
+				loginController.createRoom(roomTitle);
+				// 방에 들어가기	
+				loginController.enterRoom(roomTitle, loginController.getMyNick());
+				
+//			}
+			roomName.clear();
 			
-//		// 실행됬을 때 기능들
-//		loginController.updateUserList();
-//		loginController.updateRoomList();
-		
-		
-		
-		
+		});
 	}
 	
+	
+	
+	public LoginController getLoginController() {
+		return loginController;
+	}
 
-//	// 방 들어가기
-//	public void enterRoom(String rName) {
-//		System.out.println("들어간다?");
-//		// roomModel에서 title 가져오기
-//		
-//		RoomController partyRoom = new RoomController(this, rName);
-//		
-//		
-//
-//		
-//	}
-	// 새로고침
-	public void update() {
-		loginController.updateRoomList();
-	}
-	
+
+
 	public void setPrimaryStage(Stage primaryStage) {
 		this.primaryStage = primaryStage;
 	}
@@ -183,25 +192,13 @@ public class WaitController {
 		}
 		
 		for(int i=0;i<rNames.length;i++) {
-			roomIcon= new RoomIcon(this);
-			try {
-				Parent roomBox = FXMLLoader.load(roomIcon.getClass().getResource("roommodel.fxml"));
-				lblRoomName = (Label) roomBox.lookup("#lblRoomName");
-				roomPane = (AnchorPane) roomBox.lookup("#roomIcon");
-				lblRoomName.setText(rNames[i]);
-				
-				Platform.runLater(()->roomFlowPane.getChildren().add(roomBox));
-				
-				roomPane.setOnMouseClicked(e->{
-					loginController.enterRoom(lblRoomName.getText());
-				});
-				
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			
+			roomIcon= new RoomIcon(this, rNames[i]);
 		}
 		return;
+	}
+	
+	public FlowPane getRoomFlowPane() {
+		return roomFlowPane;
 	}
 
 	

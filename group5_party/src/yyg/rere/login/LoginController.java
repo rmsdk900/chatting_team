@@ -10,8 +10,9 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Hashtable;
-
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.ResourceBundle;
 import java.util.StringTokenizer;
 
@@ -32,12 +33,19 @@ import javafx.scene.input.KeyCode;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import yyg.rere.room.RoomController;
+
 import yyg.rere.waiting.WaitController;
 // 로그인 관련 처리하는 녀석이자 socket 관련 처리하는 녀석 main!!
 public class LoginController implements Initializable{
 	// stage 불러오기
 	private Stage primaryStage;
 	
+	public Stage getPrimaryStage() {
+		return primaryStage;
+	}
+
+
+
 	// 생성자 ? 
 	public LoginController() {
 	}
@@ -61,6 +69,11 @@ public class LoginController implements Initializable{
 	// 로그인 여부 확인
 	boolean isOk;
 	
+	// 방제 중복 여부 확인
+//	String canRoom;
+	
+	
+
 	// 접속한 내 loginId
 	String loginId;
 	// 접속한 내 닉네임
@@ -131,6 +144,7 @@ public class LoginController implements Initializable{
 			if(isOk) {
 				
 				controller = new WaitController(this, loginId);
+				primaryStage.hide();
 				try {
 					Thread.sleep(1000);
 					//서버에 목록들 업데이트 갱신 요청
@@ -143,6 +157,8 @@ public class LoginController implements Initializable{
 				// id, pw 칸 비우기
 				txtId.clear();
 				txtPw.clear();
+				// id에 다시 포커스 주기.
+				txtId.requestFocus();
 			// 로그인 실패
 			}else {
 				Alert alert = new Alert(AlertType.WARNING);
@@ -173,6 +189,7 @@ public class LoginController implements Initializable{
 				Button confirmId = (Button) login.lookup("#confirmId");
 				PasswordField txtNewPw = (PasswordField) login.lookup("#txtPw");
 				PasswordField txtPwChk = (PasswordField) login.lookup("#txtPwCheck");
+				
 				Label pwChkMsg = (Label) login.lookup("#pwChkMsg");
 				TextField txtNick = (TextField) login.lookup("#txtNick");
 				Button btnReg = (Button) login.lookup("#btnReg");
@@ -183,8 +200,14 @@ public class LoginController implements Initializable{
 				confirmId.setOnAction(e->{
 					System.out.println("중복확인");
 					String newId = txtNewId.getText();
-					// 서버로 신호 보내자. 
-					send(0,1,newId);
+					
+					try {
+						Thread.sleep(500);
+						// 서버로 신호 보내자. 
+						send(0,1,newId);
+					} catch (InterruptedException e1) {
+						e1.printStackTrace();
+					}
 					
 					if (possible) {
 						Alert alert = new Alert(AlertType.WARNING);
@@ -295,13 +318,12 @@ public class LoginController implements Initializable{
 	
 	
 	
-	
 	// 서버랑 연결 작업하기
 	public void startClient() {
 		
 		System.out.println("서버에 연결 시도");
 		try {
-			InetAddress ip = InetAddress.getByName("192.168.1.31");
+			InetAddress ip = InetAddress.getByName("192.168.1.22");
 //			InetAddress hm = InetAddress.getByName("192.168.1.41");
 			// 서버에 연결 요청 보내기
 			socket = new Socket(ip, 5001);
@@ -319,6 +341,12 @@ public class LoginController implements Initializable{
 	
 	public void stopClient() {
 		System.out.println("연결 종료");
+		// 모든 방에서 나가기
+		// 키들 뽑아서 방을 다 나가기
+		for(Entry<Integer, RoomController> entry :onRooms.entrySet()) {
+			exitRoom(entry.getKey());
+		}
+		// 로그아웃 하기
 		logout();
 		try {
 			if(socket != null && !socket.isClosed()) {
@@ -329,16 +357,11 @@ public class LoginController implements Initializable{
 		}
 	}
 	
-	public void logout() {
-		System.out.println("로그아웃");
-		send(6,-1,serverKey+"");
-		
-	}
 
 
 
 
-
+	// 정보보내기
 	public void send(int req, int opt, String data) {
 		data = req+"|"+opt+"|"+data;
 		System.out.println("클라가 보냄"+data);
@@ -373,27 +396,18 @@ public class LoginController implements Initializable{
 	public void receive() {
 		new Thread(()->{
 			// 계속
-			////////
-//			int c=0;
-			////////
 			while (true) {
 				try {
 					byte[] bytes = new byte[512];
 					InputStream is = socket.getInputStream();
-					/////////////////////////////////////
-//					c++;
-//					if(c==3) {
-//						int rB = is.read(bytes);
-//						String d = new String(bytes, 0, rB, "UTF-8");
-//						c++;
-//					}
 					
-					/////////////////////////////////
 					int readByte = is.read(bytes);
 					// 안넘어오면 오류 발생
 					if(readByte == -1) throw new IOException();
 					
 					String data = new String(bytes, 0, readByte, "UTF-8");
+					// 오는 지 확인
+					System.out.println("서버로부터 온 것: "+data);
 					// tokenize data;
 					StringTokenizer st = new StringTokenizer(data, "|");
 					int request = Integer.parseInt(st.nextToken());
@@ -427,13 +441,35 @@ public class LoginController implements Initializable{
 								myNick = findNick[1];
 							}
 							break;
+//						case 2: // 방제 중복 확인
+//							canRoom = message;
 						case 3: //enterRoom
 							// 자기가 들어간 방의 정보를 넣기
 							onRooms.put(option, new RoomController(this, option, message));
 							break;
+						case 4: //exitRoom
+							// 자기가 접속한 방 목록에서 해당 녀석 지우기
+							onRooms.remove(option);
+							
 						case 5: // msg
 							// 받은 메시지를 그 방번호에 해당하는 방에만 뿌려야 함. 
-							onRooms.get(option).displayMessage(message);
+							if(onRooms.get(option)!=null) {
+								onRooms.get(option).displayMessage(message);
+							}
+							
+							break;
+						case 6:
+							//자기가 나갔을 때
+							if(option==-1) {
+								// 소켓 닫았다가 다시 열기
+								// 로그인 창 다시 열기
+								Platform.runLater(()->primaryStage.show());
+							// 다른 사람이 나갔을 때
+							}else if(option==1) {
+								updateUserList();
+							}
+							
+							
 							break;
 						case 7: // userList
 							// 마지막 , 지우기
@@ -450,13 +486,17 @@ public class LoginController implements Initializable{
 							controller.updateUsers(namesList);
 							break;
 						case 8: // roomList
-							// 마지막 , 지우기
-							message = message.substring(0, message.length()-1);
-							// 방 이름 array
-							String[] rNames=message.split(",");
-							
-							// 이게 안되는 거 같은데
-							controller.updateRooms(rNames);
+							if(message.equals("clear")) {
+								Platform.runLater(()->controller.getRoomFlowPane().getChildren().clear());
+							}else {
+								// 마지막 , 지우기
+								message = message.substring(0, message.length()-1);
+								// 방 이름 array
+								String[] rNames=message.split(",");
+								
+								// 이게 안되는 거 같은데
+								controller.updateRooms(rNames);
+							}
 							break;
 						default:
 							break;
@@ -479,29 +519,38 @@ public class LoginController implements Initializable{
 		
 	}
 	
-	public void enterRoom(String title) {
-		System.out.println(title);
-		send(3,-1,title);
-		// 방 입장 메시지 보내기
+	public void enterRoom(String title, String nick) {
+		try {
+			Thread.sleep(300);
+			send(3,-1,title+","+nick);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		
 	}
 	
 	// 나만 방을 나갈 때
 		public void exitRoom(int rNumber) {
 			// 방 나감 요청
-			send(4,rNumber, loginId);
+			send(4,rNumber, myNick);
+			try {
+				Thread.sleep(300);
+				// 목록 갱신도 해라..
+				send(8,-1,"0");
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 			
 			
 		}
 	
-	public void delRoom(String title) {
-		
-	}
+	
 	
 	
 	// 유저리스트
 	public void updateUserList(){
 		try {
-			Thread.sleep(500);
+			Thread.sleep(300);
 			//유저리스트 요청 보내기
 			send(7,-1,"0");
 		} catch (InterruptedException e) {
@@ -512,7 +561,7 @@ public class LoginController implements Initializable{
 	// 방 목록
 	public void updateRoomList(){
 		try {
-			Thread.sleep(500);
+			Thread.sleep(300);
 			// 방 목록 요청 보내기
 			send(8,-1,"0");
 		} catch (InterruptedException e) {
@@ -521,11 +570,21 @@ public class LoginController implements Initializable{
 		
 	}
 	
+//	public String getCanRoom() {
+//		return canRoom;
+//	}
 	
 	public void setPrimaryStage(Stage primaryStage) {
-		this.primaryStage = primaryStage;
-				
-			
+		this.primaryStage = primaryStage;	
 	}
+	
+	//로그아웃하기
+		public void logout() {
+			System.out.println("로그아웃");
+			send(6,-1, myNick);
+		}
+
+
+
 
 }

@@ -34,11 +34,11 @@ public class RoomController {
 	public RoomController(LoginController loginController, int rNumber, String rName) {
 		this.loginController = loginController;
 		this.rNumber = rNumber;
-		enterRoom(rName);
+		enterRoom(rNumber, rName);
 		loginController.send(5, rNumber, loginController.getMyNick()+"님이 입장하셨습니다.");
 	}
 
-	private void enterRoom(String rName) {
+	private void enterRoom(int rNumber, String rName) {
 		try {
 			Parent room = FXMLLoader.load(getClass().getResource("partyroom.fxml"));
 			
@@ -57,35 +57,35 @@ public class RoomController {
 				stage.setResizable(false);
 				stage.setOnCloseRequest(e->{
 					loginController.exitRoom(rNumber);
+					// 나갔으니 다른 놈 업뎃
+					loginController.send(7,-1,"0");
 				});
 				stage.show();
 			});
+			
 			txtArea.setEditable(false);
+			
 			txtArea.setOnKeyReleased(key->{
 				if(key.getCode().equals(KeyCode.ENTER)) {
 					txtInput.requestFocus();
 				}
 			});
+			
 			txtInput.setOnKeyPressed(key->{
 				if(key.getCode().equals(KeyCode.ENTER)) {
 					btnSend.fire();
 				}
 			});
-			btnSend.setOnMouseClicked(e->{
+			
+			btnSend.setOnAction(e->{
 				String sender = loginController.getMyNick();
 				String msg = txtInput.getText();
 				sendMessage(sender, msg);
+				txtInput.clear();
 			});
-			
-			
-			
-			
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		
-		
-		
 	}
 	
 	

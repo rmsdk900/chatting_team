@@ -47,7 +47,7 @@ public class PartyUser {
 	public void startClient() {
 		System.out.println("서버에 연결 시도");
 		try {
-			InetAddress ip = InetAddress.getByName("192.168.1.31");
+			InetAddress ip = InetAddress.getByName("192.168.1.22");
 			// 서버에 연결 요청 보내기
 			client = new Socket(ip, 5001);
 			System.out.println("[ 연결 완료 : "+client.getRemoteSocketAddress()+"]");

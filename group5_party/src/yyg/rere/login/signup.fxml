@@ -1,65 +1,85 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import com.jfoenix.controls.*?>
+<?import java.lang.*?>
 <?import javafx.geometry.*?>
 <?import javafx.scene.control.*?>
-<?import java.lang.*?>
 <?import javafx.scene.layout.*?>
-<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.text.*?>
 
-<BorderPane xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1">
-   
-   <center>
-      <VBox alignment="CENTER" BorderPane.alignment="CENTER">
+<VBox alignment="CENTER" fillWidth="false" prefHeight="400.0" prefWidth="300.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1">
+   <children>
+      <Text strokeType="OUTSIDE" strokeWidth="0.0" text="회원가입" textAlignment="CENTER" textOrigin="CENTER">
+         <font>
+            <Font size="29.0" />
+         </font>
+         <VBox.margin>
+            <Insets bottom="20.0" top="20.0" />
+         </VBox.margin>
+      </Text>
+      <Separator prefWidth="250.0">
+         <VBox.margin>
+            <Insets bottom="20.0" />
+         </VBox.margin>
+      </Separator>
+      <TextField id="txtNick" minHeight="-Infinity" prefHeight="35.0" prefWidth="250.0" promptText="사용자 이름 : 없으면 ID" style="-fx-background-color: #fafafa;">
+         <VBox.margin>
+            <Insets bottom="10.0" />
+         </VBox.margin>
+      </TextField>
+      <HBox prefHeight="100.0" prefWidth="250.0">
          <children>
-            <GridPane alignment="CENTER_LEFT" hgap="5.0" vgap="5.0">
-              <columnConstraints>
-                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
-                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="220.0" />
-              </columnConstraints>
-              <rowConstraints>
-                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-                  <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-                  <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-                  <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-              </rowConstraints>
-               <children>
-                  <Label text="아이디" />
-                  <Label text="패스워드" GridPane.rowIndex="1" />
-                  <Label text="패스워드 확인" GridPane.rowIndex="2" />
-                  <Label id="pwChkMsg" text="- 패스워드 중복 메시지" GridPane.columnIndex="1" GridPane.rowIndex="3" />
-                  <Label text="닉네임" GridPane.rowIndex="4" />
-                  <HBox alignment="CENTER_LEFT" spacing="10.0" GridPane.columnIndex="1">
-                     <children>
-                        <TextField id="txtNewId" maxWidth="140.0" />
-                        <Button id="confirmId" mnemonicParsing="false" text="중복 확인" />
-                     </children>
-                  </HBox>
-                  <PasswordField id="txtPw" maxWidth="160.0" GridPane.columnIndex="1" GridPane.rowIndex="1" />
-                  <PasswordField id="txtPwCheck" maxWidth="160.0" GridPane.columnIndex="1" GridPane.rowIndex="2" />
-                  <TextField id="txtNick" maxWidth="140.0" promptText="없으면 ID" GridPane.columnIndex="1" GridPane.rowIndex="4" />
-               </children>
-               <padding>
-                  <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
-               </padding>
-            </GridPane>
+            <TextField id="txtNewId" minHeight="-Infinity" prefHeight="35.0" prefWidth="180.0" promptText="아이디" style="-fx-background-color: #fafafa;">
+               <HBox.margin>
+                  <Insets bottom="10.0" />
+               </HBox.margin>
+            </TextField>
+            <JFXButton id="confirmId" prefHeight="25.0" prefWidth="70.0" style="-fx-border-color: black; -fx-border-radius: 10;" text="중복확인">
+               <HBox.margin>
+                  <Insets top="5.0" />
+               </HBox.margin>
+            </JFXButton>
+         </children>
+      </HBox>
+      <PasswordField id="txtPw" minHeight="-Infinity" prefHeight="35.0" prefWidth="250.0" promptText="비밀번호" style="-fx-background-color: #fafafa;">
+         <VBox.margin>
+            <Insets bottom="10.0" />
+         </VBox.margin>
+      </PasswordField>
+      <PasswordField id="txtPwCheck" minHeight="-Infinity" prefHeight="35.0" prefWidth="250.0" promptText="비밀번호 확인" style="-fx-background-color: #fafafa;">
+         <VBox.margin>
+            <Insets bottom="10.0" />
+         </VBox.margin>
+      </PasswordField>
+      <HBox prefHeight="100.0" prefWidth="250.0">
+         <children>
+            <Label id="pwChkMsg" alignment="BOTTOM_LEFT" text="패스워드 중복메세지" />
+         </children>
+         <VBox.margin>
+            <Insets bottom="5.0" />
+         </VBox.margin>
+      </HBox>
+      <Separator prefWidth="250.0">
+         <VBox.margin>
+            <Insets />
+         </VBox.margin>
+      </Separator>
+      <VBox alignment="CENTER" prefHeight="200.0" prefWidth="300.0">
+         <children>
+            <JFXButton id="btnReg" prefHeight="35.0" prefWidth="250.0" ripplerFill="WHITE" style="-fx-background-color: #3897f0;" text="가입" textFill="WHITE">
+               <font>
+                  <Font name="System Bold" size="16.0" />
+               </font>
+               <VBox.margin>
+                  <Insets bottom="10.0" />
+               </VBox.margin>
+            </JFXButton>
+            <JFXButton id="btnCancel" prefHeight="35.0" prefWidth="250.0" style="-fx-background-color: #99b6d1;" text="취소" textFill="WHITE">
+               <font>
+                  <Font size="16.0" />
+               </font>
+            </JFXButton>
          </children>
       </VBox>
-   </center>
-   <bottom>
-      <VBox BorderPane.alignment="CENTER">
-         <children>
-            <Separator prefWidth="200.0" />
-            <HBox alignment="CENTER" spacing="10.0">
-               <children>
-                  <Button id="btnReg" mnemonicParsing="false" text="회원가입" />
-                  <Button id="btnCancel" mnemonicParsing="false" text="취소" />
-               </children>
-               <padding>
-                  <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
-               </padding>
-            </HBox>
-         </children>
-      </VBox>
-   </bottom>
-</BorderPane>
+   </children>
+</VBox>
