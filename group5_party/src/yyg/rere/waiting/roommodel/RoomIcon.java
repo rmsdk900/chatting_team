@@ -18,6 +18,11 @@ public class RoomIcon {
 	AnchorPane roomPane;
 	
 
+	public AnchorPane getRoomPane() {
+		return roomPane;
+	}
+
+
 	public RoomIcon(WaitController waitController, String rName) {
 			this.waitController = waitController;
 			this.rName = rName;
@@ -35,8 +40,8 @@ public class RoomIcon {
 				waitController.getLoginController().enterRoom(lblRoomName.getText(), waitController.getLoginController().getMyNick());
 			});
 			
-			
-			
+			System.out.println(roomPane);
+			System.out.println("UI  생성 완료");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

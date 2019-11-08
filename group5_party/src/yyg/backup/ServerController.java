@@ -1,6 +1,5 @@
-package yyg.rere.server;
+package yyg.backup;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -154,20 +153,10 @@ public class ServerController implements Initializable{
 					while(true) {
 						try {
 							
-							byte[] bytes = new byte[512];
 							InputStream is = client.getInputStream();
-							
-							int readByte = is.read(bytes);
-							// 안넘어오면 오류 발생
-							if(readByte == -1) throw new IOException();
-							
-							String data = new String(bytes, 0, readByte, "UTF-8");
-							
-							/*
-							ObjectInputStream ois = new ObjectInputStream(new BufferedInputStream(is));
+							ObjectInputStream ois = new ObjectInputStream(is);
 							// 사실 전부 스트링임.
 							String data = (String) ois.readObject();
-							*/
 							Platform.runLater(()->displayText(data)); 
 							// tokenize data
 							StringTokenizer st = new StringTokenizer(data, "|");
@@ -414,17 +403,13 @@ public class ServerController implements Initializable{
 			// 확인용
 			System.out.println("서버가 보냄"+data);
 			try {
-				/*
 				OutputStream os = client.getOutputStream();
 				ObjectOutputStream oos = new ObjectOutputStream(new BufferedOutputStream(os));
 				oos.writeObject(data);
 				oos.flush();
 				oos.close();
-				*/
-				byte[] bytes = data.getBytes("UTF-8");
-				OutputStream os = client.getOutputStream();
-				os.write(bytes);
-				os.flush();
+				os.close();
+				
 			} catch (UnsupportedEncodingException e) {
 				// 통신 안될 때 메시지 정하기
 				// 클라이언트에 표시

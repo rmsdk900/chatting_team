@@ -1,7 +1,12 @@
 package yyg.rere.login;
 
+
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
@@ -65,7 +70,7 @@ public class LoginController implements Initializable{
 	boolean possible;
 	
 	// 로그인 여부 확인
-	boolean isOk;
+	String isOk;
 	
 	// 방제 중복 여부 확인
 //	String canRoom;
@@ -130,41 +135,6 @@ public class LoginController implements Initializable{
 			String data = loginId+","+loginPw+","+serverKey;
 			//로그인 허가 신호 보내기
 			send(1, -1, data);
-			//받아올 시간이 필요한가 봐
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException e1) {
-				e1.printStackTrace();
-			}
-			// 이것도 서버에서 받아와야 함.
-			System.out.println(isOk);
-			// 로그인 성공 시 대기실 창 열기
-			if(isOk) {
-				controller = new WaitController(this, loginId);
-				primaryStage.hide();
-				try {
-					Thread.sleep(1000);
-					//서버에 목록들 업데이트 갱신 요청
-					updateUserList();
-					updateRoomList();
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-				
-				// id, pw 칸 비우기
-				txtId.clear();
-				txtPw.clear();
-				// id에 다시 포커스 주기.
-				txtId.requestFocus();
-			// 로그인 실패
-			}else {
-				Alert alert = new Alert(AlertType.WARNING);
-				alert.setTitle("로그인 실패!");
-				alert.setHeaderText("로그인에 실패하였습니다.");
-				alert.setContentText("아이디나 패스워드를 다시 확인해주세요!");
-				alert.showAndWait();
-			}
-			
 		});
 		
 
@@ -182,6 +152,7 @@ public class LoginController implements Initializable{
 				Parent login = FXMLLoader.load(getClass().getResource("signup.fxml"));
 				
 				//회원가입창 변수들 다 들고오기
+				Button btnReg = (Button) login.lookup("#btnReg");
 				TextField txtNewId = (TextField) login.lookup("#txtNewId");
 				Button confirmId = (Button) login.lookup("#confirmId");
 				PasswordField txtNewPw = (PasswordField) login.lookup("#txtPw");
@@ -189,7 +160,7 @@ public class LoginController implements Initializable{
 				
 				Label pwChkMsg = (Label) login.lookup("#pwChkMsg");
 				TextField txtNick = (TextField) login.lookup("#txtNick");
-				Button btnReg = (Button) login.lookup("#btnReg");
+				
 				Button btnCancel = (Button) login.lookup("#btnCancel");
 				
 				btnReg.setDisable(true);
@@ -197,20 +168,20 @@ public class LoginController implements Initializable{
 				confirmId.setOnAction(e->{
 					System.out.println("중복확인");
 					String newId = txtNewId.getText();
+					// 서버로 아이디 중복 확인 요청
+					send(0,1,newId);
 					
 					try {
-						Thread.sleep(500);
-						// 서버로 신호 보내자. 
-						send(0,1,newId);
+						Thread.sleep(1000);
 					} catch (InterruptedException e1) {
 						e1.printStackTrace();
 					}
 					
 					if (possible) {
 						Alert alert = new Alert(AlertType.WARNING);
-						alert.setTitle("Warning");
-						alert.setHeaderText("Same ID exist");
-						alert.setContentText("Try another ID");
+						alert.setTitle("아이디 중복");
+						alert.setHeaderText("동일한 아이디가 존재합니다.");
+						alert.setContentText("다른 아이디를 사용하세요!");
 						alert.showAndWait();
 						
 						btnReg.setDisable(true);
@@ -218,9 +189,9 @@ public class LoginController implements Initializable{
 					}
 					else {
 						Alert alert = new Alert(AlertType.WARNING);
-						alert.setTitle("Success");
-						alert.setHeaderText("You can use this ID");
-						alert.setContentText("Move on to next step");
+						alert.setTitle("아이디 사용 가능");
+						alert.setHeaderText("해당 아이디를 사용하실 수 있습니다.");
+						alert.setContentText("나머지 정보들을 입력해주세요!");
 						alert.showAndWait();
 						
 						btnReg.setDisable(false);
@@ -321,6 +292,7 @@ public class LoginController implements Initializable{
 		System.out.println("서버에 연결 시도");
 		try {
 			InetAddress ip = InetAddress.getByName("192.168.1.31");
+//			InetAddress ip = InetAddress.getByName("192.168.1.22");
 			// 서버에 연결 요청 보내기
 			socket = new Socket(ip, 5001);
 			System.out.println("[ 연결 완료 : "+socket.getRemoteSocketAddress()+"]");
@@ -361,10 +333,19 @@ public class LoginController implements Initializable{
 		data = req+"|"+opt+"|"+data;
 		System.out.println("클라가 보냄"+data);
 		try {
+			
 			byte[] bytes = data.getBytes("UTF-8");
 			OutputStream os = socket.getOutputStream();
 			os.write(bytes);
 			os.flush();
+			
+//			OutputStream os = socket.getOutputStream();
+//			ObjectOutputStream oos = new ObjectOutputStream(new BufferedOutputStream(os));
+//			oos.writeObject(data);
+//			oos.flush();
+//			oos.close();
+//			os.close();
+			
 		} catch (UnsupportedEncodingException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -393,6 +374,7 @@ public class LoginController implements Initializable{
 			// 계속
 			while (true) {
 				try {
+					
 					byte[] bytes = new byte[512];
 					InputStream is = socket.getInputStream();
 					
@@ -401,6 +383,11 @@ public class LoginController implements Initializable{
 					if(readByte == -1) throw new IOException();
 					
 					String data = new String(bytes, 0, readByte, "UTF-8");
+					
+					
+//					InputStream is = socket.getInputStream();
+//					ObjectInputStream ois = new ObjectInputStream(new BufferedInputStream(is));
+//					String data = (String) ois.readObject();
 					// 오는 지 확인
 					System.out.println("서버로부터 온 것: "+data);
 					// tokenize data;
@@ -425,15 +412,44 @@ public class LoginController implements Initializable{
 							} else if(option==-1){
 								serverKey = Integer.parseInt(message);
 							}
-							
 							break;
 						case 1: // login
+							// 아이디 비번 틀렸을 때.
 							if(message.equals("0")) {
-								isOk = false;
+								Platform.runLater(()->{
+									Alert alert = new Alert(AlertType.WARNING);
+									alert.setTitle("로그인 실패!");
+									alert.setHeaderText("로그인에 실패하였습니다.");
+									alert.setContentText("아이디나 패스워드를 다시 확인해주세요!");
+									alert.showAndWait();
+								});							
+							// 중복 로그인일 때
+							}else if(message.equals("2")) {
+								Platform.runLater(()->{
+									Alert alert = new Alert(AlertType.WARNING);
+									alert.setTitle("로그인 실패!");
+									alert.setHeaderText("로그인에 실패하였습니다.");
+									alert.setContentText("현재 접속중인 아이디 입니다.");
+									alert.showAndWait();
+								});
+							// 로그인 성공
 							}else {
-								isOk = true;
+								// 닉네임 클라이언트에 저장
 								String[] findNick=message.split(",");
 								myNick = findNick[1];
+								// 대기실 띄우기
+								Platform.runLater(()->{
+									controller = new WaitController(this, loginId);
+									primaryStage.hide();
+									// id, pw 칸 비우기
+									txtId.clear();
+									txtPw.clear();
+									// id에 다시 포커스 주기.
+									Platform.runLater(()->txtId.requestFocus());
+									// 목록 갱신
+									updateUserList();
+									updateRoomList();
+								});
 							}
 							break;
 //						case 2: // 방제 중복 확인
@@ -500,8 +516,11 @@ public class LoginController implements Initializable{
 					e.printStackTrace();
 					break;
 				} catch (IOException e) {
+					System.out.println("서버랑 통신 끊음.");
 					e.printStackTrace();
 					break;
+				} catch (Exception e) {
+					e.printStackTrace();
 				}
 			}
 		}).start();

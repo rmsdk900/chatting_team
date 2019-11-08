@@ -184,6 +184,7 @@ public class WaitController {
 //
 //
 	public void updateRooms(String[] rNames) {
+		System.out.println("updateRooms");
 		// 일단 지울까?
 		if(!roomFlowPane.getChildren().isEmpty()) {
 			Platform.runLater(()->{
@@ -193,6 +194,10 @@ public class WaitController {
 		
 		for(int i=0;i<rNames.length;i++) {
 			roomIcon= new RoomIcon(this, rNames[i]);
+			// 가져와서 눌러보자.
+			System.out.println(roomIcon.getRoomPane());
+			
+			
 		}
 		return;
 	}
