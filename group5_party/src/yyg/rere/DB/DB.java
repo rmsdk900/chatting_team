@@ -47,7 +47,7 @@ public class DB {
 	static String password = "12345";
 	
 	
-	public static int getterNum(String id) {
+	public synchronized static int getterNum(String id) {
 		
 		
 		Connection conn = null;	// 데이터 베이스 연결 정보
@@ -85,7 +85,7 @@ public class DB {
 		return -1;
 	}
 
-	public static String getterPw(String id) {
+	public synchronized static String getterPw(String id) {
 		
 		Connection conn = null;	// 데이터 베이스 연결 정보
 		Statement stmt = null;	// 연결정보를 가지고 질의 전송을 도와주는 객체
@@ -122,7 +122,7 @@ public class DB {
 		return "";
 	}	
 	
-	public static String getterNn(String id) {
+	public synchronized static String getterNn(String id) {
 		
 		Connection conn = null;	// 데이터 베이스 연결 정보
 		Statement stmt = null;	// 연결정보를 가지고 질의 전송을 도와주는 객체
@@ -159,7 +159,7 @@ public class DB {
 		return "";
 	}
 	
-	public static String getterNnI(int i) {
+	public synchronized static String getterNnI(int i) {
 		
 		Connection conn = null;	// 데이터 베이스 연결 정보
 		Statement stmt = null;	// 연결정보를 가지고 질의 전송을 도와주는 객체
@@ -197,7 +197,7 @@ public class DB {
 	}
 	
 
-	public static boolean existInTable(String id, String tName) {
+	public synchronized static boolean existInTable(String id, String tName) {
 		
 		Connection conn = null;	// 데이터 베이스 연결 정보
 		Statement stmt = null;	// 연결정보를 가지고 질의 전송을 도와주는 객체
@@ -240,7 +240,7 @@ public class DB {
 		return false;
 	}
 
-	public static void join(String id, String pw, String nick_name) {	// need arguments
+	public synchronized static void join(String id, String pw, String nick_name) {	// need arguments
 		String sql;
 		
 		Connection conn = null;	// 데이터 베이스 연결 정보
@@ -302,7 +302,7 @@ public class DB {
 		}
 	}
 	
-	public static boolean login(String id, String pw) {
+	public synchronized static boolean login(String id, String pw) {
 	
 		Connection conn = null;	// 데이터 베이스 연결 정보
 		Statement stmt = null;	// 연결정보를 가지고 질의 전송을 도와주는 객체
@@ -344,8 +344,8 @@ public class DB {
 		
 		return false;
 	}
-	
-	public static void setRoom(int num, String rName) {
+/*	
+	public synchronized static void setRoom(int num, String rName) {
 		Connection conn = null;	// 데이터 베이스 연결 정보
 		Statement stmt = null;	// 연결정보를 가지고 질의 전송을 도와주는 객체
 		ResultSet rs = null;	// 질의에 대한 결과값이 있으면 결과값을 담는 객체
@@ -380,7 +380,7 @@ public class DB {
 		return;
 	}
 	
-	public static void delRoom(int num) {
+	public synchronized static void delRoom(int num) {
 		Connection conn = null;	// 데이터 베이스 연결 정보
 		Statement stmt = null;	// 연결정보를 가지고 질의 전송을 도와주는 객체
 		ResultSet rs = null;	// 질의에 대한 결과값이 있으면 결과값을 담는 객체
@@ -414,7 +414,7 @@ public class DB {
 		
 		return;
 	}
-	
+*/	
 	
 	public static void main(String[] args) {
 		// boolean exist_table(int, String), void join(), boolean login(String, String)
@@ -445,8 +445,5 @@ public class DB {
 		return;
 	}
 
-	public static String getterNn(int a) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+	
 }

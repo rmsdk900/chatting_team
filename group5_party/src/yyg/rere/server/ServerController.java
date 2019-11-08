@@ -48,16 +48,17 @@ public class ServerController implements Initializable{
 	private static int room_count = 0;
 	// 플래그
 	private static boolean running = true;
+	
 	// 처음 client 연결 시 정보를 담고 있을 녀석
-	List<Socket> connSockets = new ArrayList<>();
+	private List<Socket> connSockets = new ArrayList<>();
 	// 접속자들 정보를 담고 있는 Map
-	Map<Integer, PartyUser> onUsers = new Hashtable<>();
+	private Map<Integer, PartyUser> onUsers = new Hashtable<>();
 	
 	// 방 리스트
-	Map<Integer, String> onRoomList = new Hashtable<>();
+	private Map<Integer, String> onRoomList = new Hashtable<>();
 	
 	// 그 방에 들어간 접속자 들 <방 번호 , <구성인원들>>
-	Map<Integer, Vector<String>> onRoomMembers = new Hashtable<>();
+	private Map<Integer, Vector<String>> onRoomMembers = new Hashtable<>();
 	
 	// 가져올 클라이언트 정보를 담고 있는 녀석
 	class PartyUser{
@@ -187,18 +188,38 @@ public class ServerController implements Initializable{
 								case 1:	// login
 									// login[0] = loginId / login[1] = pw / login[2] = serverKey;
 									String[] login = message.split(",");
+									// 아이디 비밀번호가 서버DB에 있는 것과 일치하는 지 확인
 									boolean isOk = DB.login(login[0], login[1]);
-									// 로그인할 경우
+									// 서버DB와 일치하는 경우
 									if(isOk) {
-										int key = Integer.parseInt(login[2]);
-										// 로그인한 유저의 정보를 담는 맵에 넣기
-										onUsers.put(connUserCount, new PartyUser(connSockets.get(key)));
-										onUsers.get(connUserCount).setuId(login[0]);
-										onUsers.get(connUserCount).setuName(DB.getterNn(login[0]));
-										// onUsers에 접속할 수 있는 key값 보내자. 
-										send(1, -1, "1,"+DB.getterNn(login[0]));
-										connUserCount++;
-									// 로그인 실패할 경우
+										System.out.println("서버DB랑 입력 정보 일치");
+										// 중복로그인 확인 값
+										boolean oneId=false;
+										// 현재 onUsers에서 요청한 녀석이랑 똑같은 녀석이 있는지 확인 
+										for(Map.Entry<Integer, PartyUser> entry : onUsers.entrySet()) {
+											if(entry.getValue().getuId().equals(login[0])) {
+												System.out.println("중복로그인이다");
+												send(1,-1,"2");
+												oneId=false;
+											}else {
+												oneId=true;
+											}
+											
+										}
+										// 중복로그인이 아닐 경우
+										if(oneId) {
+											int key = Integer.parseInt(login[2]);
+											// 로그인한 유저의 정보를 담는 맵에 넣기
+											synchronized (onUsers) {
+												onUsers.put(connUserCount, new PartyUser(connSockets.get(key)));
+												onUsers.get(connUserCount).setuId(login[0]);
+												onUsers.get(connUserCount).setuName(DB.getterNn(login[0]));
+												// onUsers에 접속할 수 있는 key값 보내자. 
+												send(1, -1, "1,"+DB.getterNn(login[0]));
+												connUserCount++;
+											}
+										}
+									// 아이디와 비번이 틀릴 경우
 									}else {
 										send(1, -1, "0");
 									}
@@ -228,11 +249,14 @@ public class ServerController implements Initializable{
 										System.out.println("방 만들기");
 										room_count++;
 										// message = title
-										System.out.println(message);
-										// 방 리스트에 넣기
-										onRoomList.put(room_count, message);
-										// 방별 멤버 리스트에도 형성해놓아야 함.
-										onRoomMembers.put(room_count, new Vector<String>());
+										synchronized (onRoomList) {
+											// 방 리스트에 넣기
+											onRoomList.put(room_count, message);
+										}
+										synchronized (onRoomMembers) {
+											// 방별 멤버 리스트에도 형성해놓아야 함.
+											onRoomMembers.put(room_count, new Vector<String>());
+										}
 //									}
 									
 									break;
@@ -240,17 +264,24 @@ public class ServerController implements Initializable{
 									// 메시지 2차 파싱
 									String[] ss = message.split(",");
 									// ss[0] = title, ss[1] = nickName
-									// 방 이름으로 onRoomList 의 해당 방의 번호을 찾자.
-									Integer inRNum = (Integer) getKey(onRoomList, ss[0]);
+									// 찾은 방 번호
+									int inRNum;
 									
-									// onRoomMember의 형성해놓은 vector에 닉네임 추가하자
-									onRoomMembers.get(inRNum).add(ss[1]);
-									// 자기가 들어와있는 방 번호는 옵션으로
-									send(3,inRNum,ss[0]);
+									synchronized (onRoomMembers) {
+										// 방 이름으로 onRoomList 의 해당 방의 번호을 찾자.
+										inRNum = (Integer) getKey(onRoomList, ss[0]);
+										// onRoomMember의 형성해놓은 vector에 닉네임 추가하자
+										onRoomMembers.get(inRNum).add(ss[1]);
+										// 자기가 들어와있는 방 번호는 옵션으로
+										send(3,inRNum,ss[0]);
+									}
+									
 									break;
 								case 4: // exit room
-									// 방번호로 나갈 방 찾아서 이름 빼기
-									onRoomMembers.get(option).remove(message);
+									synchronized (onRoomMembers) {
+										// 방번호로 나갈 방 찾아서 이름 빼기
+										onRoomMembers.get(option).remove(message);
+									}
 									
 									if(!onRoomMembers.get(option).isEmpty()) {
 										// 나머지 사람들을 가져와서
@@ -282,23 +313,21 @@ public class ServerController implements Initializable{
 									}
 									break;
 								case 6: // logout
-									for(Map.Entry<Integer, PartyUser> entry : onUsers.entrySet()) {
-										if(entry.getValue().getuName().equals(message)) {
-											onUsers.remove(entry.getKey());
-											break;
+									synchronized (onUsers) {
+										for(Map.Entry<Integer, PartyUser> entry : onUsers.entrySet()) {
+											if(entry.getValue().getuName().equals(message)) {
+												onUsers.remove(entry.getKey());
+												break;
+											}
 										}
+										// @TODO CHECK
+//										System.out.println("CASE 6 : "+onUsers.size());
+										// 서버의 로그아웃 했다는 신호
+										send(6,-1,"1");
 									}
-									
-									
-									// @TODO CHECK
-									System.out.println("CASE 6 : "+onUsers.size());
-									
-									// 서버의 로그아웃 했다는 신호
-									send(6,-1,"1");
-									// 다른 사람한테도 이 사람이 나갔다는 것을 알려주자.
 									break;
 								case 7: // updateUserList
-									System.out.println("7번 받았니? : "+data);
+//									System.out.println("7번 받았니? : "+data);
 									StringBuffer sb = new StringBuffer();
 									for(Map.Entry<Integer, PartyUser> entry : onUsers.entrySet()) {
 										String s = entry.getValue().getuName();

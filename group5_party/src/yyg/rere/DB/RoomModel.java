@@ -1,4 +1,4 @@
-package yyg.rere.waiting.roommodel;
+package yyg.rere.DB;
 
 import java.net.URL;
 import java.util.ResourceBundle;

@@ -44,8 +44,6 @@ public class LoginController implements Initializable{
 		return primaryStage;
 	}
 
-
-
 	// 생성자 ? 
 	public LoginController() {
 	}
@@ -142,7 +140,6 @@ public class LoginController implements Initializable{
 			System.out.println(isOk);
 			// 로그인 성공 시 대기실 창 열기
 			if(isOk) {
-				
 				controller = new WaitController(this, loginId);
 				primaryStage.hide();
 				try {
